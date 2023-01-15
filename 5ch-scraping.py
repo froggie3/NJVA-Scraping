@@ -32,21 +32,26 @@ args = parser.parse_args()
 
 
 def main():
-    if jsonLoader() is None:
+    json_path = args.json
+
+    if not os.path.exists(path=json_path):
+        print(color('%s was not found!' % json_path, fore='red'))
         exit()
 
     thread_list = jsonLoader()
 
     for thread in thread_list:
+        if not os.path.exists(path='downloads/'):
+            os.mkdir(path='downloads/')
+        
         export_path = 'downloads/' + thread['thread_title'] + '.html'
 
-        if not os.path.exists(export_path):
-
+        if not os.path.exists(path=export_path):
+            # リクエストを送信
             headers = {
                 "User-Agent": UserAgent().edge
             }
-
-            r = requests.get(thread['thread_url'], headers=headers)
+            r = requests.get(url=thread['thread_url'], headers=headers)
 
             # Shift-JIS から UTF-8 に変換して保存する
             with codecs.open(export_path, 'w', 'utf-8') as fp:
@@ -63,19 +68,11 @@ def main():
     print('download finished')
 
 
-def jsonLoader():
-    
+def jsonLoader(path):
     # JSON を読んで配列を返す
-    json_path = args.json
-
-    if not os.path.exists(json_path):
-        print(color('%s was not found!' % json_path, fore='red'))
-        return
-    else:
-        print(color('%s was found!' % json_path, fore='yellow'))
-
-        with open(json_path, 'r', encoding="utf-8") as fp:
-            return json.loads(fp.read())
+    print(color('%s was found!' % path, fore='yellow'))
+    with open(path, 'r', encoding="utf-8") as fp:
+        return json.loads(fp.read())
 
 
 if __name__ == '__main__':

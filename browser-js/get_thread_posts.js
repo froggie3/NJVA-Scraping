@@ -4,13 +4,13 @@
 
     const posts = new Array;
 
-    const number = Array.from(responses).map(
+    const number = Array.from(parent).map(
       parent => parent.querySelector('div.meta span.number').innerText
     )
-    const name = Array.from(responses).map(
+    const name = Array.from(parent).map(
       parent => parent.querySelector('div.meta span.name').innerText
     )
-    const date = Array.from(responses).map((parent) => {
+    const date = Array.from(parent).map((parent) => {
       d = parent.querySelector('div.meta span.date').innerText
       d = d.replace(/\(.\) /g, 'T')
       d = d.replace(/\//g, '-')
@@ -18,10 +18,10 @@
       return d
     })
 
-    const uid = Array.from(responses).map(
+    const uid = Array.from(parent).map(
       parent => parent.querySelector('div.meta span.uid').innerText
     )
-    const message = Array.from(responses).map(
+    const message = Array.from(parent).map(
       parent => parent.querySelector('div.message span.escaped').innerText
     )
 
