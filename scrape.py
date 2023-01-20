@@ -42,10 +42,12 @@ def main():
     thread_list = jsonLoader(json_path)
     old_thread_list = jsonLoader(old_json_path)
 
-    # 最新のスレッドは基本1000まで埋まっていないので,
-    # 再ダウンロードしてもらう
+    # 最新のスレッドは基本1000まで埋まっていないので、再ダウンロードしてもらう
     # latest.old.json から当時「最新」だった HTML の名前を特定し、削除
-    os.remove('downloads/' + old_thread_list[0]['thread_title'] + '.html')
+    last_thread_path = 'downloads/' + \
+        old_thread_list[0]['thread_title'] + '.html'
+    if (os.path.exists(last_thread_path)):
+        os.remove(last_thread_path)
 
     for thread in thread_list:
         if not os.path.exists(path='downloads/'):

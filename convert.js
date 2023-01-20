@@ -16,17 +16,23 @@ const filelist = fs.readdirSync("./downloads");
  */
 function get_thread_posts(path) {
     const posts = [];
+
     dom.window.document.body.innerHTML = fs.readFileSync(path, "utf8");
+
     //console.log("Persing DOM...");
     const parent = dom.window.document.querySelectorAll("div.post");
+
     //console.log("Retrieving post IDs");
     const number = Array.from(parent).map(
-        (parent) => parent.querySelector("div.meta > span.number").textContent
+        (parent) =>
+            parent.querySelector("div.meta > span.number").textContent - 0
     );
+
     //console.log("Retrieving post authors");
     const name = Array.from(parent).map(
         (parent) => parent.querySelector("div.meta > span.name").textContent
     );
+
     //console.log("Formatting datetime");
     const date = Array.from(parent).map((parent) => {
         d = parent
@@ -36,10 +42,13 @@ function get_thread_posts(path) {
             .replace(/$/g, "0Z");
         return d;
     });
+
     //console.log("Retrieving UIDs");
-    const uid = Array.from(parent).map(
-        (parent) => parent.querySelector("div.meta > span.uid").textContent
+    const uid = Array.from(parent).map((parent) =>
+        // "ID:" を削除
+        parent.querySelector("div.meta > span.uid").textContent.substring(3)
     );
+
     //console.log("Retrieving Messages");
     const message = Array.from(parent).map((parent) =>
         parent
@@ -77,11 +86,20 @@ for (const file of filelist) {
     // 未実装(CSV用)
     const csv_text = "";
 
+    const threadT = "なんJNVA部★133(824)";
+
+    const threadN = threadT.slice(
+        threadT.search(/★[0-9]+/) + 1,
+        threadT.search(/\([0-9]+\)/)
+    );
+
     try {
         if (!fs.existsSync(fpath()) | arg_has_force) {
             start_time = new Date();
+
             console.log(`[INFO] Trying to write contents to ${fpath()}...`);
             fs.writeFileSync(fpath(), json_text());
+            
             end_time = new Date();
 
             if (fs.existsSync(fpath())) {

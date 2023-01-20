@@ -35,8 +35,8 @@ const { scrollPageToBottom } = require("puppeteer-autoscroll-down");
                 (element) => element.querySelector("a").href
             );
 
-            const thread_titles = Array.from(parent).map(
-                (element) => element.querySelector("a").text
+            const thread_titles = Array.from(parent).map((element) =>
+                element.querySelector("a").text.replace(/\([0-9]+\)/, "")
             );
 
             const thread_urls_titles = () => {
