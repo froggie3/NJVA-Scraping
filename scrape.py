@@ -16,14 +16,14 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('-s', '--sleep',
                     default=5,
-                    help='',
-                    metavar='sleep',
+                    help='specify the interval at which you download each HTML',
+                    metavar='N',
                     required=False,
                     type=int,
                     )
 parser.add_argument('-j', '--json',
-                    help='',
-                    metavar='path',
+                    help='choose a path for a JSON file containing thread URLs and titles',
+                    metavar='PATH',
                     required=True,
                     type=str,
                     )

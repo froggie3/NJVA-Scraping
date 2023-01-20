@@ -1,13 +1,22 @@
+const { argv } = require("node:process");
+const { JSDOM } = jsdom;
 const fs = require("fs");
 const jsdom = require("jsdom");
 const pc = require("picocolors");
-const { JSDOM } = jsdom;
+const arg_has_force = (function () {
+    return argv.includes("--force") | argv.includes("-f") ? true : false;
+})();
 
-const posts = [];
+const dom = new JSDOM();
+const filelist = fs.readdirSync("./downloads");
 
-// ファイル名を引数に JSON を出力する
+/**
+ * A function to output an array, taking one argument of path to a JSON file.
+ * @param {string} path Path to your favorite JSON file.
+ */
 function get_thread_posts(path) {
-    const data = fs.readFileSync(path, "utf8");
+    const posts = [];
+    dom.window.document.body.innerHTML = fs.readFileSync(path, "utf8");
     //console.log("Persing DOM...");
     const parent = dom.window.document.querySelectorAll("div.post");
     //console.log("Retrieving post IDs");
@@ -51,18 +60,14 @@ function get_thread_posts(path) {
             message: message[i],
         });
     }
-
-    dom.window.close();
     return posts;
 }
-
-const filelist = fs.readdirSync("./downloads");
 
 console.log(pc.green(`Starting the process`));
 for (file of filelist) {
     const fpath = "json/" + file.replace(/html/g, "json");
     try {
-        if (!fs.existsSync(fpath)) {
+        if (!fs.existsSync(fpath) | arg_has_force) {
             start_time = new Date();
             console.log(`Trying to write contents to ${fpath}...`);
             const json_text = () =>
@@ -71,7 +76,6 @@ for (file of filelist) {
                     null,
                     "  "
                 );
-
             fs.writeFileSync(fpath, json_text());
             end_time = new Date();
 
@@ -91,4 +95,6 @@ for (file of filelist) {
         console.error(err);
     }
 }
+
+dom.window.close();
 console.log(pc.green(`Done.`));

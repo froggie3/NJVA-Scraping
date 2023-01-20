@@ -10,6 +10,8 @@
   "license": "ISC",
   "dependencies": {
     "jsdom": "^21.0.0",
-    "picocolors": "^1.0.0"
+    "picocolors": "^1.0.0",
+    "puppeteer-autoscroll-down": "^1.1.1",
+    "puppeteer-core": "^19.5.2"
   }
 }
