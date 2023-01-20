@@ -1,8 +1,8 @@
-const { argv } = require("node:process");
-const { JSDOM } = jsdom;
 const fs = require("fs");
 const jsdom = require("jsdom");
 const pc = require("picocolors");
+const { argv } = require("node:process");
+const { JSDOM } = jsdom;
 const arg_has_force = (function () {
     return argv.includes("--force") | argv.includes("-f") ? true : false;
 })();
@@ -45,8 +45,9 @@ function get_thread_posts(path) {
         parent
             .querySelector("div.message > span.escaped")
             .textContent.replace(/^\n/g, "")
-            .replace(/[0-9]  /g, "\n")
             .replace(/  /g, "\n")
+            .replace(/\n /g, "\n")
+            .replace(/\n /g, "\n\n")
             .trim()
     );
 
@@ -63,33 +64,37 @@ function get_thread_posts(path) {
     return posts;
 }
 
-console.log(pc.green(`Starting the process`));
-for (file of filelist) {
-    const fpath = "json/" + file.replace(/html/g, "json");
+console.log(pc.green(`[INFO] Starting the process`));
+for (const file of filelist) {
+    const fpath = () => {
+        // 将来的に JSON か CSV ファイルがくるかどうかで分けたい
+        return "json/" + file.replace(/html/g, "json");
+    };
+
+    const json_text = () =>
+        JSON.stringify(get_thread_posts("downloads/" + file), null, "  ");
+
+    // 未実装(CSV用)
+    const csv_text = "";
+
     try {
-        if (!fs.existsSync(fpath) | arg_has_force) {
+        if (!fs.existsSync(fpath()) | arg_has_force) {
             start_time = new Date();
-            console.log(`Trying to write contents to ${fpath}...`);
-            const json_text = () =>
-                JSON.stringify(
-                    get_thread_posts("downloads/" + file),
-                    null,
-                    "  "
-                );
-            fs.writeFileSync(fpath, json_text());
+            console.log(`[INFO] Trying to write contents to ${fpath()}...`);
+            fs.writeFileSync(fpath(), json_text());
             end_time = new Date();
 
-            if (fs.existsSync(fpath)) {
+            if (fs.existsSync(fpath())) {
                 console.log(
                     pc.blue(
-                        `JSON written to ${fpath} (${
+                        `[INFO] JSON written to ${fpath()} (${
                             end_time.getTime() - start_time.getTime()
                         } ms)`
                     )
                 );
             }
         } else {
-            console.log(pc.red(`${fpath} already exists. Skipping...`));
+            console.log(`[INFO] ${fpath()} already exists. Skipping...`);
         }
     } catch (err) {
         console.error(err);
@@ -97,4 +102,4 @@ for (file of filelist) {
 }
 
 dom.window.close();
-console.log(pc.green(`Done.`));
+console.log(pc.green(`[INFO] Done.`));
