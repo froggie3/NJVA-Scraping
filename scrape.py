@@ -9,7 +9,7 @@ import requests
 import time
 
 parser = argparse.ArgumentParser(
-    prog='5ch-scraping',
+    prog='JNVA-Scraping',
     description='',
     epilog=''
 )
@@ -38,7 +38,7 @@ def main():
         print(color('%s was not found!' % json_path, fore='red'))
         exit()
 
-    thread_list = jsonLoader()
+    thread_list = jsonLoader(json_path)
 
     for thread in thread_list:
         if not os.path.exists(path='downloads/'):
