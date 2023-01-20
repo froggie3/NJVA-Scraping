@@ -33,17 +33,24 @@ args = parser.parse_args()
 
 def main():
     json_path = args.json
+    old_json_path = json_path.replace('.json', '.old.json')
 
     if not os.path.exists(path=json_path):
         print(color('%s was not found!' % json_path, fore='red'))
         exit()
 
     thread_list = jsonLoader(json_path)
+    old_thread_list = jsonLoader(old_json_path)
+
+    # 最新のスレッドは基本1000まで埋まっていないので,
+    # 再ダウンロードしてもらう
+    # latest.old.json から当時「最新」だった HTML の名前を特定し、削除
+    os.remove('downloads/' + old_thread_list[0]['thread_title'] + '.html')
 
     for thread in thread_list:
         if not os.path.exists(path='downloads/'):
             os.mkdir(path='downloads/')
-        
+
         export_path = 'downloads/' + thread['thread_title'] + '.html'
 
         if not os.path.exists(path=export_path):
@@ -64,11 +71,11 @@ def main():
 
         else:
             print('skipped saving to %s' % export_path)
-        
+
     print('download finished')
 
 
-def jsonLoader(path):
+def jsonLoader(path="target/latest.json"):
     # JSON を読んで配列を返す
     print(color('%s was found!' % path, fore='yellow'))
     with open(path, 'r', encoding="utf-8") as fp:

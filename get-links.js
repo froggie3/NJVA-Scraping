@@ -23,7 +23,7 @@ const { scrollPageToBottom } = require("puppeteer-autoscroll-down");
         const lastPosition = await scrollPageToBottom(page, {
             size: 500,
             delay: 250,
-            stepsLimit: 50
+            stepsLimit: 50,
         });
 
         const get_thread_links = await page.evaluate(() => {
@@ -53,15 +53,16 @@ const { scrollPageToBottom } = require("puppeteer-autoscroll-down");
             return thread_urls_titles();
         });
 
-        console.log(get_thread_links)
+        console.log(get_thread_links);
 
         const json_text = () => {
             return JSON.stringify(get_thread_links, null, "    ");
         };
 
-        const fpath = () => {
+        // argument にある backup は2回目以降のダウンロードに役立つ
+        const fpath = (path = "target/latest", backup = false) => {
             // 将来的に JSON か CSV ファイルがくるかどうかで分けたい
-            return "target/" + "latest.json";
+            return path + (backup == true ? ".old" : "") + ".json";
         };
 
         try {
@@ -70,7 +71,18 @@ const { scrollPageToBottom } = require("puppeteer-autoscroll-down");
             console.log(`[INFO] Trying to write contents to ${fpath()}...`);
 
             if (!json_text == "") {
-                console.log(pc.green(`[INFO] Succeeded to retrieve thread names and links`));
+                console.log(
+                    pc.green(
+                        `[INFO] Succeeded to retrieve thread names and links`
+                    )
+                );
+                if (fs.existsSync(fpath())) {
+                    // latest.json のコピーを作成してからダウンロード
+                    console.log(
+                        pc.green(`[INFO] Creating a copy to ${fpath(true)}...`)
+                    );
+                    fs.copyFileSync(fpath(), fpath(true));
+                }
                 fs.writeFileSync(fpath(), json_text());
             } else {
                 console.log(pc.red(`[FATAL] NULL returned`));
