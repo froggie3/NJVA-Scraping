@@ -9,7 +9,7 @@ const arg_has_force = (function () {
 })();
 
 const dom = new JSDOM();
-const filelist = fs.readdirSync("./downloads");
+const filelist = fs.readdirSync("./downloads/html");
 
 /**
  * A function to output an array, taking one argument of path to a JSON file.
@@ -76,11 +76,11 @@ console.log(pc.green(`[INFO] Starting the process`));
 for (const file of filelist) {
     const fpath = (): string => {
         // 将来的に JSON か CSV ファイルがくるかどうかで分けたい
-        return "downloads/json/" + file.replace(/html/g, "json");
+        return "./downloads/json/" + file.replace(/html/g, "json");
     };
 
     const json_text = (): string =>
-        JSON.stringify(get_thread_posts("downloads/html/" + file), null, "  ");
+        JSON.stringify(get_thread_posts("./downloads/html/" + file), null, "  ");
 
     // 未実装(CSV用)
     const csv_text: string = "";

@@ -44,16 +44,16 @@ def main():
 
     # 最新のスレッドは基本1000まで埋まっていないので、再ダウンロードしてもらう
     # latest.old.json から当時「最新」だった HTML の名前を特定し、削除
-    last_thread_path = 'downloads/html/' + \
+    last_thread_path = './downloads/html/' + \
         old_thread_list[0]['thread_title'] + '.html'
     if (os.path.exists(last_thread_path)):
         os.remove(last_thread_path)
 
     for thread in thread_list:
-        if not os.path.exists(path='downloads/html/'):
-            os.mkdir(path='downloads/html/')
+        if not os.path.exists(path='./downloads/html/'):
+            os.mkdir(path='./downloads/html/')
 
-        export_path = 'downloads/html/' + thread['thread_title'] + '.html'
+        export_path = './downloads/html/' + thread['thread_title'] + '.html'
 
         if not os.path.exists(path=export_path):
             # リクエストを送信
