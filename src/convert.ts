@@ -76,11 +76,11 @@ console.log(pc.green(`[INFO] Starting the process`));
 for (const file of filelist) {
     const fpath = (): string => {
         // 将来的に JSON か CSV ファイルがくるかどうかで分けたい
-        return "json/" + file.replace(/html/g, "json");
+        return "downloads/json/" + file.replace(/html/g, "json");
     };
 
     const json_text = (): string =>
-        JSON.stringify(get_thread_posts("downloads/" + file), null, "  ");
+        JSON.stringify(get_thread_posts("downloads/html/" + file), null, "  ");
 
     // 未実装(CSV用)
     const csv_text: string = "";

@@ -10,7 +10,7 @@ A few scripts which helps you to retrieve all the JSON-formatted threads on „Å™„
     node ./get-links.js
     ```
 
-2. Download webpages from URLs written in .json file which you've just downloaded. For additional help, you can specify `-h` option for this script. The webpages will be saved into `downloads/` directory.
+2. Download webpages from URLs written in .json file which you've just downloaded. For additional help, you can specify `-h` option for this script. The webpages will be saved into `downloads/html/` directory.
 
     (Note that older threads archive than ‚òÖ65 (whose titles are different from the latest one) are already downloaded in `target` directory, so you do not have to re-download)
 
@@ -18,7 +18,7 @@ A few scripts which helps you to retrieve all the JSON-formatted threads on „Å™„
     python ./scrape.py --json target/latest.json
     ```
 
-3. Convert all the threads into JSON format. It should take for a while for all webpages to be converted. If you would like to override the files which you have already downloaded, you can specify `-f` or `--force` (alias) option for this script. Converted JSONs will be saved into `json/` directory.
+3. Convert all the threads into JSON format. It should take for a while for all webpages to be converted. If you would like to override the files which you have already downloaded, you can specify `-f` or `--force` (alias) option for this script. Converted JSONs will be saved into `downloads/json/` directory.
 
     ```bash
     node ./convert.js [-f ,--force]

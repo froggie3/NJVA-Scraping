@@ -1,5 +1,6 @@
 .venv
-downloads/
+downloads/html/
 node_modules/
 target/latest.old.json
 tools/
+dest/
