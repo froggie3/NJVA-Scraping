@@ -77,13 +77,6 @@ for (const file of filelist) {
         return "./downloads/json/" + file.replace(/html/g, "json");
     };
 
-    const json_text = ((): string =>
-        JSON.stringify(
-            get_thread_posts("./downloads/html/" + file),
-            null,
-            "  "
-        ))();
-
     // 未実装(CSV用)
     const csv_text: string = "";
 
@@ -97,6 +90,13 @@ for (const file of filelist) {
     try {
         if (!fs.existsSync(fpath()) || arg_has_force) {
             const start_time = new Date();
+
+            const json_text = ((): string =>
+                JSON.stringify(
+                    get_thread_posts("./downloads/html/" + file),
+                    null,
+                    "  "
+                ))();
 
             console.log(`[INFO] Trying to write contents to ${fpath()}...`);
             fs.writeFileSync(fpath(), json_text);

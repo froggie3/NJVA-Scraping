@@ -1,6 +1,13 @@
-.venv
-downloads/html/
+.venv/
 node_modules/
-target/latest.old.json
-tools/
+
+# Generated later
+downloads/html/
 dest/
+
+# Specific JSON paths
+target/latest.old.json
+target/nanj_1-65.old.json
+
+# Experimentals
+tools/
