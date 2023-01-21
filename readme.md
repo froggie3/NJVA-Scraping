@@ -13,7 +13,7 @@ A few scripts which helps you to retrieve all the JSON-formatted threads on „Å™„
 2. In virtual environment, install required components for the Python script to run.
 
     ```bash
-    .\.venv\Scripts\Activate.ps1
+    pip install -r ./requirements.txt
     ```
 
 3. Install required components for Node.js, generates `node_modules/` directory.
