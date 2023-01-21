@@ -28,40 +28,30 @@ const { scrollPageToBottom } = require("puppeteer-autoscroll-down");
         });
 
         const get_thread_links = await page.evaluate(() => {
-            const parent = document.getElementsByClassName("title");
-
-            const parent_length: number = parent.length;
+            const parent: any = document.getElementsByClassName("title");
 
             const thread_urls: string[] = Array.from(parent).map(
-                (element: any) => element.querySelector("a").href
+                (element: any): string => element.querySelector("a").href
             );
 
-            const thread_titles: string[] = Array.from(parent).map((element: any) =>
-                element.querySelector("a").text.replace(/\([0-9]+\)/, "")
+            const thread_titles: string[] = Array.from(parent).map(
+                (element: any): string =>
+                    element.querySelector("a").text.replace(/\([0-9]+\)/, "")
             );
 
-            const thread_urls_titles = () => {
-                const tmp = [];
-                for (let i = 0; i < parent_length; i++) {
-                    tmp.push({
-                        thread_title: thread_titles[i],
-                        thread_url: thread_urls[i],
-                    });
-                }
-                return tmp;
-            };
-
-            return thread_urls_titles();
+            return thread_titles.map((e, i) => [e, thread_urls[i]]);
         });
 
-        console.log(get_thread_links);
+        const json_text = ((): string =>
+            JSON.stringify(get_thread_links, null, "    "))();
 
-        const json_text = () => {
-            return JSON.stringify(get_thread_links, null, "    ");
-        };
+        console.log(json_text);
 
         // argument にある backup は2回目以降のダウンロードに役立つ
-        const fpath = (backup: boolean = false, path: string = "target/latest") => {
+        const fpath = (
+            backup: boolean = false,
+            path: string = "target/latest"
+        ): string => {
             // 将来的に JSON か CSV ファイルがくるかどうかで分けたい
             return path + (backup == true ? ".old" : "") + ".json";
         };

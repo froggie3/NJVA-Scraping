@@ -1,13 +1,12 @@
 const fs = require("fs");
 const pc = require("picocolors");
-export {};
 const jsdom = require("jsdom");
 const { argv } = require("node:process");
 const { JSDOM } = jsdom;
-const arg_has_force = (function () {
-    return argv.includes("--force") | argv.includes("-f") ? true : false;
-})();
+export {};
 
+const arg_has_force = (() =>
+    argv.includes("--force") | argv.includes("-f") ? true : false)();
 const dom = new JSDOM();
 const filelist = fs.readdirSync("./downloads/html");
 
@@ -16,8 +15,6 @@ const filelist = fs.readdirSync("./downloads/html");
  * @param {string} path Path to your favorite JSON file.
  */
 function get_thread_posts(path: string): unknown[] {
-    const posts = [];
-
     dom.window.document.body.innerHTML = fs.readFileSync(path, "utf8");
 
     //console.log("Persing DOM...");
@@ -25,16 +22,18 @@ function get_thread_posts(path: string): unknown[] {
 
     //console.log("Retrieving post IDs");
     const number: number[] = Array.from(parent).map(
-        (parent: any) => parent.querySelector("div.meta > span.number").textContent
+        (parent: any): number =>
+            parent.querySelector("div.meta > span.number").textContent - 0
     );
 
     //console.log("Retrieving post authors");
     const name: string[] = Array.from(parent).map(
-        (parent: any) => parent.querySelector("div.meta > span.name").textContent
+        (parent: any): string =>
+            parent.querySelector("div.meta > span.name").textContent
     );
 
     //console.log("Formatting datetime");
-    const date: string[] = Array.from(parent).map((parent: any) =>
+    const date: string[] = Array.from(parent).map((parent: any): string =>
         parent
             .querySelector("div.meta > span.date")
             .textContent.replace(/\(.\) /g, "T")
@@ -43,13 +42,13 @@ function get_thread_posts(path: string): unknown[] {
     );
 
     //console.log("Retrieving UIDs");
-    const uid: string[] = Array.from(parent).map((parent: any) =>
+    const uid: string[] = Array.from(parent).map((parent: any): string =>
         // "ID:" を削除
         parent.querySelector("div.meta > span.uid").textContent.substring(3)
     );
 
     //console.log("Retrieving Messages");
-    const message: string[] = Array.from(parent).map((parent: any) =>
+    const message: string[] = Array.from(parent).map((parent: any): string =>
         parent
             .querySelector("div.message > span.escaped")
             .textContent.replace(/^\n/g, "")
@@ -60,16 +59,15 @@ function get_thread_posts(path: string): unknown[] {
     );
 
     //console.log("Zipping...");
-    for (let i = 0; i < parent.length; i++) {
-        posts.push({
-            number: number[i],
+    return number.map((e, i) => {
+        return {
+            number: e,
             name: name[i],
             date: date[i],
             uid: uid[i],
             message: message[i],
-        });
-    }
-    return posts;
+        };
+    });
 }
 
 console.log(pc.green(`[INFO] Starting the process`));
@@ -79,8 +77,12 @@ for (const file of filelist) {
         return "./downloads/json/" + file.replace(/html/g, "json");
     };
 
-    const json_text = (): string =>
-        JSON.stringify(get_thread_posts("./downloads/html/" + file), null, "  ");
+    const json_text = ((): string =>
+        JSON.stringify(
+            get_thread_posts("./downloads/html/" + file),
+            null,
+            "  "
+        ))();
 
     // 未実装(CSV用)
     const csv_text: string = "";
@@ -97,7 +99,7 @@ for (const file of filelist) {
             const start_time = new Date();
 
             console.log(`[INFO] Trying to write contents to ${fpath()}...`);
-            fs.writeFileSync(fpath(), json_text());
+            fs.writeFileSync(fpath(), json_text);
 
             const end_time = new Date();
 
