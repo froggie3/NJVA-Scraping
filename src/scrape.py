@@ -102,19 +102,17 @@ def main():
         export_path = out_dir + thread['thread_title'] + '.html'
 
         if not os.path.exists(path=export_path):
-            # リクエストを送信
-            headers = {
-                "User-Agent": UserAgent().edge
-            }
-            r = requests.get(url=thread['thread_url'], headers=headers)
-
             # Shift-JIS から UTF-8 に変換して保存する
             with codecs.open(export_path, 'w', 'utf-8') as fp:
-                t = r.text
-                t = t.replace('charset=Shift_JIS', 'charset="UTF-8"')
+                # リクエストを送信
+                r = requests.get(url=thread['thread_url'], headers={
+                    "User-Agent": UserAgent().edge
+                })
+                t = r.text.replace('charset=Shift_JIS', 'charset="UTF-8"')
                 fp.write(t)
 
             print(color('[INFO] Exported to %s' % export_path, fore='blue'))
+
             time.sleep(sleep_time)
         else:
             print('[INFO] Skipped saving to %s' % export_path)
@@ -126,6 +124,7 @@ def jsonLoader(path):
     # JSON を読んで配列を返す
     if os.path.exists(path=path):
         print(color('Found %s' % path, fore='blue'))
+
         with open(path, 'r', encoding="utf-8") as fp:
             return json.loads(fp.read())
     else:
