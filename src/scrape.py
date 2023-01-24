@@ -56,7 +56,6 @@ args = parser.parse_args()
 def main():
     # JSON ファイルの場所を指定
     json_path = args.json[0]
-    print(json_path)
 
     # 休憩時間
     sleep_time = args.sleep
