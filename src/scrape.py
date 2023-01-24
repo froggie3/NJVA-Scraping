@@ -34,7 +34,7 @@ parser.add_argument('-s', '--sleep',
                     )
 
 parser.add_argument('-j', '--json',
-                    default='./target/latest.json',
+                    default=['./target/latest.json'],
                     help='choose a path for a JSON file containing thread URLs and titles\n',
                     metavar='[path]',
                     nargs=1,
@@ -43,7 +43,7 @@ parser.add_argument('-j', '--json',
                     )
 
 parser.add_argument('-o', '--outdir',
-                    default='./downloads/html/',
+                    default=['./downloads/html/'],
                     help='specify the directory in which the archive HTML files to be saved\n',
                     metavar='[directory]',
                     nargs=1,
@@ -53,17 +53,16 @@ parser.add_argument('-o', '--outdir',
 
 args = parser.parse_args()
 
-
 def main():
     # JSON ファイルの場所を指定
-    json_path = args.json
-    old_json_path = json_path.replace('.json', '.old.json')
+    json_path = args.json[0]
+    print(json_path)
 
     # 休憩時間
     sleep_time = args.sleep
 
     # 保存先となるディレクトリの指定
-    out_dir = args.outdir.strip('/').strip('\\') + '/'
+    out_dir = args.outdir[0].strip('/').strip('\\') + '/'
     if not os.path.exists(path=out_dir):
         print(color('[FATAL] %s is not a valid path for a JSON File.' %
                     args.outdir, fore='red'))
@@ -71,6 +70,7 @@ def main():
 
     # JSONの存在を確認し、配列を作成
     thread_list = jsonLoader(json_path)
+    old_json_path = json_path.replace('.json', '.old.json')
 
     # .old.json の存在も確認 (なかったらコピーを試行)
     retry_interval = 2
