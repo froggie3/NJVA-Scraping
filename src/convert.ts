@@ -3,7 +3,6 @@ const pc = require("picocolors");
 const jsdom = require("jsdom");
 const { argv } = require("node:process");
 const { JSDOM } = jsdom;
-export {};
 
 const arg_has_force = (() =>
     argv.includes("--force") | argv.includes("-f") ? true : false)();
@@ -78,14 +77,14 @@ for (const file of filelist) {
     };
 
     // 未実装(CSV用)
-    const csv_text: string = "";
+    // const csv_text: string = "";
 
-    const threadT: string = "なんJNVA部★133(824)";
+    // const threadT: string = "なんJNVA部★133(824)";
 
-    const threadN = threadT.slice(
-        threadT.search(/★[0-9]+/) + 1,
-        threadT.search(/\([0-9]+\)/)
-    );
+    // const threadN = threadT.slice(
+    //     threadT.search(/★[0-9]+/) + 1,
+    //     threadT.search(/\([0-9]+\)/)
+    // );
 
     try {
         if (!fs.existsSync(fpath()) || arg_has_force) {

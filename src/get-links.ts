@@ -1,7 +1,6 @@
 const fs = require("fs");
 const pc = require("picocolors");
-export {};
-const puppeteer = require("puppeteer-core");
+import puppeteer from "puppeteer";
 const { scrollPageToBottom } = require("puppeteer-autoscroll-down");
 
 (async () => {
@@ -39,7 +38,12 @@ const { scrollPageToBottom } = require("puppeteer-autoscroll-down");
                     element.querySelector("a").text.replace(/\([0-9]+\)/, "")
             );
 
-            return thread_titles.map((e, i) => [e, thread_urls[i]]);
+            return thread_titles.map((e, i) => {
+                return {
+                    thread_title: e,
+                    thread_url: thread_urls[i],
+                };
+            });
         });
 
         const json_text = ((): string =>
@@ -62,21 +66,23 @@ const { scrollPageToBottom } = require("puppeteer-autoscroll-down");
             console.log(`[INFO] Trying to write contents to ${fpath()}...`);
 
             if (!json_text) {
+                throw new Error("[FATAL] NULL returned");
+            } else {
                 console.log(
                     pc.green(
-                        `[INFO] Succeeded to retrieve thread names and links`
+                        "[INFO] Succeeded to retrieve thread names and links"
                     )
                 );
                 if (fs.existsSync(fpath())) {
                     // latest.json のコピーを作成してからダウンロード
-                    console.log(
-                        pc.green(`[INFO] Creating a copy to ${fpath(true)}...`)
-                    );
+                    console.log(`[INFO] Creating a copy to ${fpath(true)}...`);
                     fs.copyFileSync(fpath(), fpath(true));
+                } else {
+                    throw new Error(
+                        "[FATAL] Failed when copying file. Check if the file is not locked."
+                    );
                 }
                 fs.writeFileSync(fpath(), json_text);
-            } else {
-                console.log(pc.red(`[FATAL] NULL returned`));
             }
 
             const end_time = new Date();
@@ -84,17 +90,18 @@ const { scrollPageToBottom } = require("puppeteer-autoscroll-down");
             if (fs.existsSync(fpath())) {
                 console.log(
                     pc.blue(
-                        `[INFO] JSON written to ${fpath()} (${
+                        `[INFO] JSON was written to ${fpath()} (${
                             end_time.getTime() - start_time.getTime()
                         } ms)`
                     )
                 );
             }
         } catch (err) {
-            console.error(err);
+            // 空文字が返ってきた
+            console.error(pc.red(err));
         }
     } catch (err) {
-        // エラーが起きた際の処理
+        console.error(pc.red(err));
     } finally {
         await page.close();
         await browser.close();
