@@ -11,3 +11,5 @@ target/nanj_1-65.old.json
 
 # Experimentals
 tools/
+scrape.[j|t]s
+convertcsv.[j|t]s

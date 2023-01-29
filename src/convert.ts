@@ -3,7 +3,7 @@ const pc = require("picocolors");
 const jsdom = require("jsdom");
 const { argv } = require("node:process");
 const { JSDOM } = jsdom;
-
+export {};
 const arg_has_force = (() =>
     argv.includes("--force") | argv.includes("-f") ? true : false)();
 const dom = new JSDOM();

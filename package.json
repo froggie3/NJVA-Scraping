@@ -4,11 +4,10 @@
   "description": "A few scripts which helps you to retrieve all the JSON-formatted threads on なんJNVA部. ",
   "main": "index.js",
   "scripts": {
-    "test": "tsc",
+    "test": "(tsc src/scrape.ts --outDir dest/.)",
     "saveindexes": "node ./dest/get-links.js",
     "scrape": "python ./src/scrape.py --json ./target/latest.json",
     "convert": "node ./dest/convert.js"
-    
   },
   "author": "",
   "license": "MIT",
@@ -18,10 +17,12 @@
     "puppeteer": "^19.6.0",
     "puppeteer-autoscroll-down": "^1.1.1",
     "ts-node": "^10.9.1",
-    "typescript": "^4.9.4"
+    "typescript": "^4.9.4",
+    "yargs": "^17.6.2"
   },
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.2",
-    "@types/jsdom": "^20.0.1"
+    "@types/jsdom": "^20.0.1",
+    "@types/yargs": "^17.0.20"
   }
 }
