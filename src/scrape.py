@@ -63,7 +63,7 @@ class ThreadsDownloader:
         timer = Timer()
 
         # JSON ファイルの場所を指定
-        json_path = args.json[0]
+        json_path = "./target/latest.json"
 
         # 保存先となるディレクトリの指定
         out_dir = args.outdir[0].strip("/").strip("\\") + "/"
@@ -138,8 +138,7 @@ class ThreadsDownloader:
 
         print(color("[INFO] Downloading finished", fore="blue"))
 
-    def jsonLoader(self, path):
-        # JSON を読んで配列を返す
+    def jsonLoader(self, path) -> dict:
         if os.path.exists(path=path):
             print(color("Found %s" % path, fore="blue"))
 
@@ -154,7 +153,6 @@ class ThreadsIndexer:
     def __init__(self, e: object = {}) -> None:
         self.thread_list = e
 
-    #   以下のメソッドは繰り返し文の中で使ってね
     def compose(self, e: object = {}) -> str:
         if e is not None:
             thread = {
@@ -183,7 +181,6 @@ class ThreadsIndexer:
             "&custom_resnum_dir=up",
             f"&p={page}",
         )
-        # return f"http://127.0.0.1/ajax_search.v15.cgi.{page}.json"
 
     def make_index(self) -> object:
         timer = Timer()
@@ -191,7 +188,6 @@ class ThreadsIndexer:
         out = []
 
         while True:
-            # ti: object = ThreadsIndexer()
             uri: str = self.get_query_uri(search="なんJNVA部", page=pageindex)
 
             try:
