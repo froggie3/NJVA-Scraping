@@ -40,8 +40,6 @@ A few scripts which helps you to retrieve all the JSON-formatted threads on な�
 
     (Note that older threads archive than ★65 (whose titles are different from the latest one) are already downloaded as `target/nanj_1-65.json`, so you do not have to re-download)
 
-    __UPDATE: The option `--json` was removed since this command itself let you prepare everything you need to obtain JSON archives in the next step.__
-
     ```bash
     python ./src/scrape.py --json ./target/latest.json
     ```

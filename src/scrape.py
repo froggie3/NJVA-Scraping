@@ -4,7 +4,7 @@ import argparse
 import codecs
 import json
 import os
-import pprint
+# import pprint
 import requests
 from requests.exceptions import HTTPError
 import shutil
@@ -31,13 +31,24 @@ parser.add_argument(
     "-s",
     "--sleep",
     choices=range(3, 10),
-    default=5,
+    default=[5],
     help="specify the interval at which you download each \
 HTML\n",
     metavar="[integer]",
     nargs=1,
     required=False,
     type=int,
+)
+
+parser.add_argument(
+    '-j',
+    '--json',
+    default=['./target/latest.json'],
+    help='choose a path for a JSON file containing thread URLs and titles\n',
+    metavar='[path]',
+    nargs=1,
+    required=False,
+    type=str,
 )
 
 parser.add_argument(
@@ -56,11 +67,17 @@ args = parser.parse_args()
 
 
 class ThreadsDownloader:
+
+    json_path = ""
+
     def __init__(self) -> None:
+        self.json_path = args.json[0]
         pass
 
     def main(self):
         timer = Timer()
+
+        print(color("[INFO] Looking for thread indexes...", fore="blue"))
 
         # JSON ファイルの場所を指定
         json_path = "./target/latest.json"
@@ -70,7 +87,8 @@ class ThreadsDownloader:
         if not os.path.exists(path=out_dir):
             print(
                 color(
-                    "[FATAL] %s is not a valid path for a JSON File." % args.outdir,
+                    "[FATAL] %s is not a valid path for a JSON File."
+                    % args.outdir,
                     fore="red",
                 )
             )
@@ -99,7 +117,8 @@ class ThreadsDownloader:
                 if i >= 1:
                     print(
                         color(
-                            "[FATAL] Failed when making a copy of %s." % old_json_path,
+                            "[FATAL] Failed when making a copy of %s."
+                            % old_json_path,
                             fore="red",
                         )
                     )
@@ -108,11 +127,14 @@ class ThreadsDownloader:
         old_thread_list = self.jsonLoader(old_json_path)
 
         # latest.old.json から取得以前で最新の HTML の名前を特定
-        last_thread_path = out_dir + old_thread_list[0]["thread_title"] + ".html"
+        last_thread_path = out_dir + \
+            old_thread_list[0]["thread_title"] + ".html"
 
         # 最新のスレッドは基本埋まっていないので、削除して再ダウンロードにまわす
         if os.path.exists(last_thread_path):
             os.remove(last_thread_path)
+
+        print(color("[INFO] Start downloading archives...", fore="blue"))
 
         for thread in thread_list:
             os.makedirs(name=out_dir, exist_ok=True)
@@ -125,22 +147,24 @@ class ThreadsDownloader:
                     # リクエストを送信
                     r = requests.get(
                         url=thread["thread_url"],
-                        headers={"User-Agent": UserAgent().edge},
+                        headers={"User-Agent": UserAgent().chrome},
                     )
                     t = r.text.replace("charset=Shift_JIS", 'charset="UTF-8"')
                     fp.write(t)
 
-                print(color("[INFO] Exported to %s" % export_path, fore="blue"))
+                print(color("    Exported to %s" %
+                      export_path, fore="blue"))
 
                 timer.sleep()
             else:
-                print("[INFO] Skipped saving to %s" % export_path)
+                print("    Skipped saving to %s" % export_path)
 
         print(color("[INFO] Downloading finished", fore="blue"))
 
     def jsonLoader(self, path) -> dict:
+
         if os.path.exists(path=path):
-            print(color("Found %s" % path, fore="blue"))
+            print(f"    Found {path}")
 
             with open(path, "r", encoding="utf-8") as fp:
                 return json.loads(fp.read())
@@ -150,10 +174,14 @@ class ThreadsDownloader:
 
 
 class ThreadsIndexer:
-    def __init__(self, e: object = {}) -> None:
-        self.thread_list = e
+    searchquery = ""
+    json_path = ""
 
-    def compose(self, e: object = {}) -> str:
+    def __init__(self, query: str,) -> None:
+        self.searchquery = query
+        self.json_path = args.json[0]
+
+    def compose(self, e: object = {}) -> object:
         if e is not None:
             thread = {
                 "thread_title": self.compose_title(e),
@@ -173,7 +201,8 @@ class ThreadsIndexer:
             e["bbskey"].rstrip(),
         )
 
-    def get_query_uri(self, search: str = "なんJNVA部", page: int = 0) -> str:
+    def get_query_uri(self, search: str, page: int = 0) -> str:
+        # return f"http://127.0.0.1/ajax_search.v15.cgi.{page}.json"
         API = "https://kakolog.jp/ajax/ajax_search.v15.cgi"
         return "%s%s%s%s" % (
             API,
@@ -185,14 +214,17 @@ class ThreadsIndexer:
     def make_index(self) -> object:
         timer = Timer()
         pageindex = 0
-        out = []
+        threads = []
+
+        print(color("[INFO] Retrieving thread indexes...", fore="blue"))
 
         while True:
-            uri: str = self.get_query_uri(search="なんJNVA部", page=pageindex)
+            uri: str = self.get_query_uri(
+                search=self.searchquery, page=pageindex)
 
             try:
                 response: object = requests.get(
-                    url=uri, headers={"User-Agent": UserAgent().edge}
+                    url=uri, headers={"User-Agent": UserAgent().chrome}
                 )
                 # raise error if an error has occurred
                 response.raise_for_status()
@@ -202,10 +234,11 @@ class ThreadsIndexer:
                     if not retrieved["list"]:
                         break
                     else:
-                        text = f"({response.status_code} OK)"
-                        print("[INFO] %s : %s" % (color(text, fore="blue"), uri))
+                        print(f"    {uri} ... {response.status_code} OK")
                         for i in retrieved["list"]:
-                            out.append(self.compose(e=i))
+                            threads.append(self.compose(e=i))
+                else:
+                    pass
 
                 timer.sleep()
                 pageindex += 1
@@ -214,35 +247,56 @@ class ThreadsIndexer:
                 print(e)
                 raise
 
-        return out
+        print(color("    Succeeded to retrieve thread names and links",
+                    fore="green"))
 
-    def save_index(self, data: object = {}):
-        fpath = "./target/latest.json"
-        fpath_old = "./target/latest.old.json"
+        return threads
+
+    def to_string(self, data: object) -> str:
+        return json.dumps(data, indent=4, ensure_ascii=False)
+
+    def save_index(self, json_str: str) -> None:
+        fpath = self.json_path
+        fpath_old = self.json_path.replace('.json', '.old.json')
 
         if os.path.exists(path=fpath_old):
             os.remove(fpath_old)
 
-            if os.path.exists(path=fpath):
-                shutil.copyfile(fpath, fpath_old)
+        if os.path.exists(path=fpath):
+            # latest.json のコピーを作成してからダウンロード
+            print(f'[INFO] Creating a copy to {fpath_old}...')
+            shutil.copyfile(fpath, fpath_old)
+            if not os.path.exists(path=fpath_old):
+                print(color("[FATAL] Failed when making a copy of %s." % fpath,
+                            fore="red",
+                            ))
+                exit()
+            else:
+                print(color(f"    Succeeded to create a copy to {fpath_old}",
+                            fore="green"))
 
-                with codecs.open(fpath, "w", "utf-8") as fp:
-                    fp.write(json.dumps(data, indent=4, ensure_ascii=False))
+        with codecs.open(fpath, "w", "utf-8") as fp:
+            fp.write(json_str)
 
         if os.path.exists(path=fpath):
-            print(color("[INFO] Index was exported to %s" % fpath, fore="blue"))
+            print(color("[INFO] Index was exported to %s" %
+                  fpath, fore="blue"))
+
+        return None
 
 
 class Timer:
 
-    SLEEP_TIME = args.sleep
+    sleep_time: float = 0.0
 
     def __init__(self) -> None:
+        self.sleep_time = args.sleep[0]
         pass
 
-    def sleep(self, counter: float = SLEEP_TIME, rate: float = 0.1) -> None:
+    def sleep(self, rate: float = 0.1) -> None:
+        counter = float(self.sleep_time)
         while counter >= 0.0:
-            print(f"Waiting... ({counter:.1f} seconds left)", end="\r")
+            print(f"    Waiting... ({counter:.1f} seconds left)", end="\r")
             counter -= rate
             time.sleep(rate)
         print("")
@@ -252,8 +306,8 @@ class Timer:
 if __name__ == "__main__":
     try:
         td: object = ThreadsDownloader()
-        ti: object = ThreadsIndexer()
-        ti.save_index(ti.make_index())
+        ti: object = ThreadsIndexer(query="なんJNVA部")
+        ti.save_index(ti.to_string(ti.make_index()))
         td.main()
 
     except KeyboardInterrupt:
