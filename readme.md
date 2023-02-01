@@ -2,6 +2,8 @@
 
 A few scripts which helps you to retrieve all the JSON-formatted threads on なんJNVA部.
 
+![A console screenshot for scrape.py][A console screenshot for scrape.py]
+
 ## Update
 
 * __2022/2/1__
@@ -54,3 +56,6 @@ A few scripts which helps you to retrieve all the JSON-formatted threads on な�
 
 * Node.js (tested on `v18.12.1`)
 * Python (tested on `v3.10.6`)
+
+
+[A console screenshot for scrape.py]: ./readme_resources/20230201222458.png "A console screenshot for scrape.py"
