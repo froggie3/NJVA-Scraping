@@ -5,13 +5,13 @@
   "main": "index.js",
   "scripts": {
     "test": "(tsc src/scrape.ts --outDir dest/.)",
-    "saveindexes": "node ./dest/get-links.js",
     "scrape": "python ./src/scrape.py --json ./target/latest.json",
     "convert": "node ./dest/convert.js"
   },
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@types/node": "^18.11.18",
     "jsdom": "^21.0.0",
     "picocolors": "^1.0.0",
     "puppeteer-autoscroll-down": "^1.1.1",

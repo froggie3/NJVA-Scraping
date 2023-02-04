@@ -4,9 +4,14 @@ A few scripts which helps you to retrieve all the JSON-formatted threads on „Å™„
 
 ![A console screenshot for scrape.py][A console screenshot for scrape.py]
 
-## Update
+## Updates
 
-* __2022/2/1__
+* __2022/2/5: Cleaned Up__
+
+    If you are looking for past thread archives, they have been moved to this repository:  
+    <https://github.com/froggie3/JNVA-Archives>
+
+* __2022/2/1: Removed the unneeded__
 
     Node module for puppeteer was removed from `package.json`, so you can manually remove them by `npm remove puppeteer`
 

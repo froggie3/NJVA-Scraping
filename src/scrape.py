@@ -109,13 +109,8 @@ class ThreadsDownloader:
         # 保存先となるディレクトリの指定
         out_dir = args.outdir[0].strip("/").strip("\\") + "/"
         if not os.path.exists(path=out_dir):
-            print(
-                color(
-                    "[FATAL] %s is not a valid path for a JSON File."
-                    % args.outdir,
-                    fore="red",
-                )
-            )
+            print(color(
+                f"[FATAL] {args.outdir} is not a valid path for a JSON File.", fore="red"))
             exit()
 
         # JSONの存在を確認し、配列を作成
@@ -128,24 +123,13 @@ class ThreadsDownloader:
         for i in range(0, tries):
             if not os.path.exists(path=old_json_path):
                 if i == 0:
-                    print(
-                        color(
-                            "[WARN] %s was not found. Making a copy of \
-                        JSON file..."
-                            % old_json_path,
-                            fore="yellow",
-                        )
-                    )
+                    print(color(
+                        f"[WARN] {old_json_path} was not found. Making a copy of JSON file...", fore="yellow"))
                     shutil.copyfile(self.json_path, old_json_path)
                     time.sleep(retry_interval)
                 if i >= 1:
                     print(
-                        color(
-                            "[FATAL] Failed when making a copy of %s."
-                            % old_json_path,
-                            fore="red",
-                        )
-                    )
+                        color(f"[FATAL] Failed when making a copy of {old_json_path}.", fore="red"))
                     exit()
 
         old_thread_list = self.__jsonLoader(old_json_path)
@@ -165,65 +149,65 @@ class ThreadsDownloader:
 
             export_path = out_dir + thread["thread_title"] + ".html"
 
-            if not os.path.exists(path=export_path):
-                # Shift-JIS から UTF-8 に変換して保存する
-                with codecs.open(filename=export_path, mode="w", encoding="utf-8") as fp:
-                    # リクエストを送信
-                    url: str = thread["thread_url"]
-                    host: str = re.findall(
-                        "[^http(|s):\/\/].+.5ch.net", url)[0]
-
-                    while True:
-                        r = requests.get(
-                            url=url,
-                            headers={
-                                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-                                "Accept-Encoding": "gzip, deflate, br",
-                                "Accept-Language": "ja,en-US;q=0.7,en;q=0.3",
-                                "Alt-Used": host,
-                                "Cache-Control": "no-cache",
-                                "Connection": "keep-alive",
-                                "DNT": "1",
-                                "Host": host,
-                                "Pragma": "no-cache",
-                                "Sec-Fetch-Dest": "document",
-                                "Sec-Fetch-Mode": "navigate",
-                                "Sec-Fetch-Site": "none",
-                                "Sec-Fetch-User": "?1",
-                                "TE": "trailers",
-                                "Upgrade-Insecure-Requests": "1",
-                                "User-Agent": UserAgent().random
-                            }
-                        )
-
-                        # Gone. が返ってきたら再試行する
-                        if not re.findall("Gone.\n", r.text):
-                            print("    Received invalid response. Retrying...")
-                            timer.sleep()
-                            break
-
-                    t = r.text.replace("charset=Shift_JIS", 'charset="UTF-8"')
-                    fp.write(t)
-
-                print(color("    Exported to %s" %
-                      export_path, fore="blue"))
-
-                timer.sleep()
-            else:
+            # 既にHTMLがあるときはスキップ
+            if os.path.exists(path=export_path):
                 if self.has_verbose:
                     print("    Skipped saving to %s" % export_path)
+                continue
+
+            # リクエストを送信
+            url: str = thread["thread_url"]
+            host: str = re.findall(
+                "[^http(|s):\/\/].+.5ch.net", url)[0]
+
+            while True:
+                # Gone. が返ってきたら再試行する
+                r = requests.get(
+                    url=url,
+                    headers={
+                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+                        "Accept-Encoding": "gzip, deflate, br",
+                        "Accept-Language": "ja,en-US;q=0.7,en;q=0.3",
+                        "Alt-Used": host,
+                        "Cache-Control": "no-cache",
+                        "Connection": "keep-alive",
+                        "DNT": "1",
+                        "Host": host,
+                        "Pragma": "no-cache",
+                        "Sec-Fetch-Dest": "document",
+                        "Sec-Fetch-Mode": "navigate",
+                        "Sec-Fetch-Site": "none",
+                        "Sec-Fetch-User": "?1",
+                        "TE": "trailers",
+                        "Upgrade-Insecure-Requests": "1",
+                        "User-Agent": UserAgent().random
+                    }
+                )
+
+                if not re.findall("Gone.\n", r.text):
+                    print("    Received invalid response. Retrying...")
+                    timer.sleep()
+                    break
+
+            # Shift-JIS から UTF-8 に変換して保存する
+            with codecs.open(filename=export_path, mode="w", encoding="utf-8") as fp:
+                fp.write(r.text.replace(
+                    "charset=Shift_JIS", 'charset="UTF-8"'))
+
+            print(color(f"    Exported to {export_path}", fore="blue"))
+
+            timer.sleep()
 
         print(color("[INFO] Downloading finished", fore="blue"))
 
     def __jsonLoader(self, path) -> dict:
-
         if os.path.exists(path=path):
             print(f"    Found {path}")
 
             with open(file=path, mode="r", encoding="utf-8") as fp:
                 return json.loads(fp.read())
         else:
-            print(color("%s was not found!" % path, fore="red"))
+            print(color(f"{path} was not found!", fore="red"))
             exit()
 
 
@@ -363,7 +347,6 @@ class ThreadsIndexer:
 
 
 class Timer:
-
     sleep_time: float = 0.0
 
     def __init__(self) -> None:

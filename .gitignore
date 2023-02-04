@@ -2,7 +2,7 @@
 node_modules/
 
 # Generated later
-downloads/html/
+downloads/*
 dest/
 
 # Specific JSON paths
