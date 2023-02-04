@@ -1,14 +1,15 @@
-from colr import color
-from fake_useragent import UserAgent
 import argparse
 import codecs
 import json
 import os
-# import pprint
+import pprint
+import re
 import requests
-from requests.exceptions import HTTPError
 import shutil
 import time
+from colr import color
+from fake_useragent import UserAgent
+from requests.exceptions import HTTPError
 
 
 class HelpFormatter(
@@ -63,24 +64,47 @@ files to be saved\n",
     type=str,
 )
 
+parser.add_argument(
+    "--verbose",
+    action='store_true',
+    default=False,
+    help="specify whether you want detailed information\n",
+    required=False,
+)
+
+parser.add_argument(
+    "--skip-index",
+    action='store_true',
+    default=False,
+    help="specify whether you want skip retrieving latest indexes\n",
+    required=False,
+)
+
+parser.add_argument(
+    "--skip-download",
+    action='store_true',
+    default=False,
+    help="specify whether you want skip retrieving latest indexes\n",
+    required=False,
+)
+
 args = parser.parse_args()
 
 
 class ThreadsDownloader:
 
     json_path = ""
+    has_verbose = False
 
     def __init__(self) -> None:
         self.json_path = args.json[0]
+        self.has_verbose = args.verbose
         pass
 
     def main(self):
         timer = Timer()
 
         print(color("[INFO] Looking for thread indexes...", fore="blue"))
-
-        # JSON ファイルの場所を指定
-        json_path = "./target/latest.json"
 
         # 保存先となるディレクトリの指定
         out_dir = args.outdir[0].strip("/").strip("\\") + "/"
@@ -95,8 +119,8 @@ class ThreadsDownloader:
             exit()
 
         # JSONの存在を確認し、配列を作成
-        thread_list = self.jsonLoader(json_path)
-        old_json_path = json_path.replace(".json", ".old.json")
+        thread_list = self.__jsonLoader(self.json_path)
+        old_json_path = self.json_path.replace(".json", ".old.json")
 
         # .old.json の存在も確認 (なかったらコピーを試行)
         retry_interval = 2
@@ -112,7 +136,7 @@ class ThreadsDownloader:
                             fore="yellow",
                         )
                     )
-                    shutil.copyfile(json_path, old_json_path)
+                    shutil.copyfile(self.json_path, old_json_path)
                     time.sleep(retry_interval)
                 if i >= 1:
                     print(
@@ -124,7 +148,7 @@ class ThreadsDownloader:
                     )
                     exit()
 
-        old_thread_list = self.jsonLoader(old_json_path)
+        old_thread_list = self.__jsonLoader(old_json_path)
 
         # latest.old.json から取得以前で最新の HTML の名前を特定
         last_thread_path = out_dir + \
@@ -143,12 +167,41 @@ class ThreadsDownloader:
 
             if not os.path.exists(path=export_path):
                 # Shift-JIS から UTF-8 に変換して保存する
-                with codecs.open(export_path, "w", "utf-8") as fp:
+                with codecs.open(filename=export_path, mode="w", encoding="utf-8") as fp:
                     # リクエストを送信
-                    r = requests.get(
-                        url=thread["thread_url"],
-                        headers={"User-Agent": UserAgent().chrome},
-                    )
+                    url: str = thread["thread_url"]
+                    host: str = re.findall(
+                        "[^http(|s):\/\/].+.5ch.net", url)[0]
+
+                    while True:
+                        r = requests.get(
+                            url=url,
+                            headers={
+                                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+                                "Accept-Encoding": "gzip, deflate, br",
+                                "Accept-Language": "ja,en-US;q=0.7,en;q=0.3",
+                                "Alt-Used": host,
+                                "Cache-Control": "no-cache",
+                                "Connection": "keep-alive",
+                                "DNT": "1",
+                                "Host": host,
+                                "Pragma": "no-cache",
+                                "Sec-Fetch-Dest": "document",
+                                "Sec-Fetch-Mode": "navigate",
+                                "Sec-Fetch-Site": "none",
+                                "Sec-Fetch-User": "?1",
+                                "TE": "trailers",
+                                "Upgrade-Insecure-Requests": "1",
+                                "User-Agent": UserAgent().random
+                            }
+                        )
+
+                        # Gone. が返ってきたら再試行する
+                        if not re.findall("Gone.\n", r.text):
+                            print("    Received invalid response. Retrying...")
+                            timer.sleep()
+                            break
+
                     t = r.text.replace("charset=Shift_JIS", 'charset="UTF-8"')
                     fp.write(t)
 
@@ -157,16 +210,17 @@ class ThreadsDownloader:
 
                 timer.sleep()
             else:
-                print("    Skipped saving to %s" % export_path)
+                if self.has_verbose:
+                    print("    Skipped saving to %s" % export_path)
 
         print(color("[INFO] Downloading finished", fore="blue"))
 
-    def jsonLoader(self, path) -> dict:
+    def __jsonLoader(self, path) -> dict:
 
         if os.path.exists(path=path):
             print(f"    Found {path}")
 
-            with open(path, "r", encoding="utf-8") as fp:
+            with open(file=path, mode="r", encoding="utf-8") as fp:
                 return json.loads(fp.read())
         else:
             print(color("%s was not found!" % path, fore="red"))
@@ -181,27 +235,27 @@ class ThreadsIndexer:
         self.searchquery = query
         self.json_path = args.json[0]
 
-    def compose(self, e: object = {}) -> object:
+    def __compose(self, e: object = {}) -> object:
         if e is not None:
             thread = {
-                "thread_title": self.compose_title(e),
-                "thread_url": self.compose_url(e),
+                "thread_title": self.__compose_title(e),
+                "thread_url": self.__compose_url(e),
             }
         else:
             thread: object = {"thread_title": "", "thread_url": ""}
         return thread
 
-    def compose_title(self, e: object) -> str:
+    def __compose_title(self, e: object) -> str:
         return e["title"].rstrip()
 
-    def compose_url(self, e: object) -> str:
+    def __compose_url(self, e: object) -> str:
         return "https://%s/test/read.cgi/%s/%s/" % (
             e["server"].rstrip(),
             e["bbs"].rstrip(),
             e["bbskey"].rstrip(),
         )
 
-    def get_query_uri(self, search: str, page: int = 0) -> str:
+    def __get_query_uri(self, search: str, page: int = 0) -> str:
         # return f"http://127.0.0.1/ajax_search.v15.cgi.{page}.json"
         API = "https://kakolog.jp/ajax/ajax_search.v15.cgi"
         return "%s%s%s%s" % (
@@ -212,6 +266,7 @@ class ThreadsIndexer:
         )
 
     def make_index(self) -> object:
+        HOST: str = "kakolog.jp"
         timer = Timer()
         pageindex = 0
         threads = []
@@ -219,15 +274,33 @@ class ThreadsIndexer:
         print(color("[INFO] Retrieving thread indexes...", fore="blue"))
 
         while True:
-            uri: str = self.get_query_uri(
+            uri: str = self.__get_query_uri(
                 search=self.searchquery, page=pageindex)
 
             try:
                 response: object = requests.get(
-                    url=uri, headers={"User-Agent": UserAgent().chrome}
+                    url=uri,
+                    headers={
+                        "Accept-Encoding": "gzip, deflate, br",
+                        "Accept-Language": "ja,en-US;q=0.7,en;q=0.3",
+                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+                        "Alt-Used": HOST,
+                        "Cache-Control": "no-cache",
+                        "Connection": "keep-alive",
+                        "DNT": "1",
+                        "Host": HOST,
+                        "Pragma": "no-cache",
+                        "Sec-Fetch-Dest": "document",
+                        "Sec-Fetch-Mode": "navigate",
+                        "Sec-Fetch-Site": "none",
+                        "Sec-Fetch-User": "?1",
+                        "TE": "trailers",
+                        "Upgrade-Insecure-Requests": "1",
+                        "User-Agent": UserAgent().random,
+                    }
                 )
                 # raise error if an error has occurred
-                response.raise_for_status()
+                # response.raise_for_status()
 
                 if response.status_code == 200:
                     retrieved: dict = json.loads(response.text)
@@ -236,12 +309,16 @@ class ThreadsIndexer:
                     else:
                         print(f"    {uri} ... {response.status_code} OK")
                         for i in retrieved["list"]:
-                            threads.append(self.compose(e=i))
+                            threads.append(self.__compose(e=i))
+                        pageindex += 1
+
                 else:
+                    print(color("    Failed to retrieve thread names and links. Retrying...",
+                                fore="yellow"))
+                    pageindex += 0
                     pass
 
                 timer.sleep()
-                pageindex += 1
 
             except HTTPError as e:
                 print(e)
@@ -275,7 +352,7 @@ class ThreadsIndexer:
                 print(color(f"    Succeeded to create a copy to {fpath_old}",
                             fore="green"))
 
-        with codecs.open(fpath, "w", "utf-8") as fp:
+        with codecs.open(filename=fpath, mode="w", encoding="utf-8") as fp:
             fp.write(json_str)
 
         if os.path.exists(path=fpath):
@@ -305,10 +382,15 @@ class Timer:
 
 if __name__ == "__main__":
     try:
-        td: object = ThreadsDownloader()
-        ti: object = ThreadsIndexer(query="なんJNVA部")
-        ti.save_index(ti.to_string(ti.make_index()))
-        td.main()
+        if not args.skip_index:
+            ti: object = ThreadsIndexer(query="なんJNVA部")
+            ti.save_index(ti.to_string(ti.make_index()))
+            pass
+
+        if not args.skip_download:
+            td: object = ThreadsDownloader()
+            td.main()
+            pass
 
     except KeyboardInterrupt:
         pass
