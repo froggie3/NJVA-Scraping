@@ -20,7 +20,7 @@ A few scripts which helps you to retrieve all the JSON-formatted threads on „Å™„
 1. Setup Python venv. If your terminal is on PowerShell, type this:
 
     ```bash
-    pwsh -c .venv/Scripts/Activate.ps1
+    .\.venv\Scripts\Activate.ps1
     ```
 
 2. In virtual environment, install required components for the Python script to run.
