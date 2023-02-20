@@ -57,8 +57,7 @@ function get_thread_posts(path: string): object {
       "div.meta > span.uid"
     );
 
-    // substring で "ID:" を削除
-    return (element?.textContent as string).substring(3);
+    return (element?.textContent as string).replace(/ID:/g, "");
   });
 
   //console.log("Retrieving Messages");
@@ -92,16 +91,8 @@ console.log(pc.green(`[INFO] Starting the process`));
 for (const file of filelist) {
   const fpath = directory.json + file.replace(/html/g, "json");
 
-  // 未実装(CSV用)
-  // const csv_text: string = "";
-  // const threadT: string = "なんJNVA部★133(824)";
-  // const threadN = threadT.slice(
-  //     threadT.search(/★[0-9]+/) + 1,
-  //     threadT.search(/\([0-9]+\)/)
-  // );
-
   if (existsSync(fpath) && !arg_has_force) {
-    // console.log(`[INFO] ${fpath} already exists. Skipping...`);
+    console.log(`[INFO] ${fpath} already exists. Skipping...`);
     continue;
   }
 
