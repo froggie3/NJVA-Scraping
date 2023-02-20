@@ -1,122 +1,121 @@
-const fs = require("fs");
-const pc = require("picocolors");
-const jsdom = require("jsdom");
-const { argv } = require("node:process");
-const { JSDOM } = jsdom;
-export {};
-const arg_has_force = (() =>
-    argv.includes("--force") | argv.includes("-f") ? true : false)();
+import { readFileSync, readdirSync, existsSync, writeFileSync } from "node:fs";
+import pc from "picocolors";
+import { JSDOM } from "jsdom";
+import { argv } from "node:process";
+const arg_has_force =
+  (argv.includes("--force") || argv.includes("-f")) ?? false;
 const dom = new JSDOM();
-const filelist = fs.readdirSync("./downloads/html");
+const filelist: string[] = readdirSync("./downloads/html");
 
 /**
  * A function to output an array, taking one argument of path to a JSON file.
+ *
  * @param {string} path Path to your favorite JSON file.
+ * @return {object}
  */
-function get_thread_posts(path: string): unknown[] {
-    dom.window.document.body.innerHTML = fs.readFileSync(path, "utf8");
+function get_thread_posts(path: string): object {
+  dom.window.document.body.innerHTML = readFileSync(path, "utf8");
 
-    //console.log("Persing DOM...");
-    const parent = dom.window.document.querySelectorAll("div.post");
+  //console.log("Persing DOM...");
+  const parent: Node[] = Array.from(
+    dom.window.document.querySelectorAll("div.post") as NodeList
+  );
 
-    //console.log("Retrieving post IDs");
-    const number: number[] = Array.from(parent).map(
-        (parent: any): number =>
-            parent.querySelector("div.meta > span.number").textContent - 0
+  //console.log("Retrieving post IDs");
+  const number: number[] = parent.map(parent => {
+    const element = (parent as HTMLElement).querySelector(
+      "div.meta > span.number"
     );
 
-    //console.log("Retrieving post authors");
-    const name: string[] = Array.from(parent).map(
-        (parent: any): string =>
-            parent.querySelector("div.meta > span.name").textContent
+    return +(element?.textContent as string);
+  });
+
+  //console.log("Retrieving post authors");
+  const name: string[] = parent.map(parent => {
+    const element = (parent as HTMLElement).querySelector(
+      "div.meta > span.name"
     );
 
-    //console.log("Formatting datetime");
-    const date: string[] = Array.from(parent).map((parent: any): string =>
-        parent
-            .querySelector("div.meta > span.date")
-            .textContent.replace(/\(.\) /g, "T")
-            .replace(/\//g, "-")
-            .replace(/$/g, "0Z")
+    return element?.textContent as string;
+  });
+
+  //console.log("Formatting datetime");
+  const date: string[] = parent.map(parent => {
+    const element = (parent as HTMLElement).querySelector(
+      "div.meta > span.date"
     );
 
-    //console.log("Retrieving UIDs");
-    const uid: string[] = Array.from(parent).map((parent: any): string =>
-        // "ID:" を削除
-        parent.querySelector("div.meta > span.uid").textContent.substring(3)
+    return (element?.textContent as string)
+      .replace(/\(.\) /g, "T")
+      .replace(/\//g, "-")
+      .replace(/$/g, "0Z");
+  });
+
+  //console.log("Retrieving UIDs");
+  const uid: string[] = parent.map(parent => {
+    const element = (parent as HTMLElement).querySelector(
+      "div.meta > span.uid"
     );
 
-    //console.log("Retrieving Messages");
-    const message: string[] = Array.from(parent).map((parent: any): string =>
-        parent
-            .querySelector("div.message > span.escaped")
-            .textContent.replace(/^\n/g, "")
-            .replace(/  /g, "\n")
-            .replace(/\n /g, "\n")
-            .replace(/\n /g, "\n\n")
-            .trim()
+    // substring で "ID:" を削除
+    return (element?.textContent as string).substring(3);
+  });
+
+  //console.log("Retrieving Messages");
+  const message: string[] = parent.map(parent => {
+    const element = (parent as HTMLElement).querySelector(
+      "div.message > span.escaped"
     );
 
-    //console.log("Zipping...");
-    return number.map((e, i) => {
-        return {
-            number: e,
-            name: name[i],
-            date: date[i],
-            uid: uid[i],
-            message: message[i],
-        };
-    });
+    return (element?.textContent as string)
+      .replace(/^\n/g, "")
+      .replace(/  /g, "\n")
+      .replace(/\n /g, "\n")
+      .replace(/\n /g, "\n\n")
+      .trim();
+  });
+
+  //console.log("Zipping...");
+  return number.map((e, i): object => ({
+    number: e,
+    name: name[i],
+    date: date[i],
+    uid: uid[i],
+    message: message[i],
+  }));
 }
 
+const directory = { json: "downloads/json/", html: "downloads/html/" } as const;
+
 console.log(pc.green(`[INFO] Starting the process`));
+
 for (const file of filelist) {
-    const fpath = (): string => {
-        // 将来的に JSON か CSV ファイルがくるかどうかで分けたい
-        return "./downloads/json/" + file.replace(/html/g, "json");
-    };
+  const fpath = directory.json + file.replace(/html/g, "json");
 
-    // 未実装(CSV用)
-    // const csv_text: string = "";
+  // 未実装(CSV用)
+  // const csv_text: string = "";
+  // const threadT: string = "なんJNVA部★133(824)";
+  // const threadN = threadT.slice(
+  //     threadT.search(/★[0-9]+/) + 1,
+  //     threadT.search(/\([0-9]+\)/)
+  // );
 
-    // const threadT: string = "なんJNVA部★133(824)";
+  if (existsSync(fpath) && !arg_has_force) {
+    // console.log(`[INFO] ${fpath} already exists. Skipping...`);
+    continue;
+  }
 
-    // const threadN = threadT.slice(
-    //     threadT.search(/★[0-9]+/) + 1,
-    //     threadT.search(/\([0-9]+\)/)
-    // );
+  const json_text: string = ((): string =>
+    JSON.stringify(get_thread_posts(directory.html + file), null, "  "))();
 
-    try {
-        if (!fs.existsSync(fpath()) || arg_has_force) {
-            const start_time = new Date();
+  console.log(`[INFO] Trying to write contents to ${fpath}...`);
+  writeFileSync(fpath, json_text, { encoding: "utf8", flag: "w" });
 
-            const json_text = ((): string =>
-                JSON.stringify(
-                    get_thread_posts("./downloads/html/" + file),
-                    null,
-                    "  "
-                ))();
+  if (!existsSync(fpath)) {
+    continue;
+  }
 
-            console.log(`[INFO] Trying to write contents to ${fpath()}...`);
-            fs.writeFileSync(fpath(), json_text);
-
-            const end_time = new Date();
-
-            if (fs.existsSync(fpath())) {
-                console.log(
-                    pc.blue(
-                        `[INFO] JSON written to ${fpath()} (${
-                            end_time.getTime() - start_time.getTime()
-                        } ms)`
-                    )
-                );
-            }
-        } else {
-            console.log(`[INFO] ${fpath()} already exists. Skipping...`);
-        }
-    } catch (err) {
-        console.error(err);
-    }
+  console.log(pc.blue(`[INFO] JSON written to ${fpath}`));
 }
 
 dom.window.close();
