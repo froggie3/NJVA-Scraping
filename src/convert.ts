@@ -4,8 +4,39 @@ import { JSDOM } from "jsdom";
 import { argv } from "node:process";
 const arg_has_force =
   (argv.includes("--force") || argv.includes("-f")) ?? false;
+
 const dom = new JSDOM();
-const filelist: string[] = readdirSync("./downloads/html");
+const directory = { json: "downloads/json/", html: "downloads/html/" } as const;
+const filelist: string[] = readdirSync(directory.html);
+
+console.log(pc.green(`[INFO] Starting the process`));
+
+for (const file of filelist) {
+  const file_path = directory.json + file.replace(/html/g, "json");
+
+  if (existsSync(file_path) && !arg_has_force) {
+    console.log(`[INFO] ${file_path} already exists. Skipping...`);
+    continue;
+  }
+
+  (() => {
+    const json_text: string = ((): string =>
+      JSON.stringify(get_thread_posts(directory.html + file), null, "  "))();
+
+    console.log(`[INFO] Trying to write contents to ${file_path}...`);
+    writeFileSync(file_path, json_text, { encoding: "utf8", flag: "w" });
+  })();
+
+  if (!existsSync(file_path)) {
+    continue;
+  }
+
+  console.log(pc.blue(`[INFO] JSON written to ${file_path}`));
+}
+
+dom.window.close();
+
+console.log(pc.green(`[INFO] Done.`));
 
 /**
  * A function to output an array, taking one argument of path to a JSON file.
@@ -16,12 +47,10 @@ const filelist: string[] = readdirSync("./downloads/html");
 function get_thread_posts(path: string): object {
   dom.window.document.body.innerHTML = readFileSync(path, "utf8");
 
-  //console.log("Persing DOM...");
   const parent: Node[] = Array.from(
     dom.window.document.querySelectorAll("div.post") as NodeList
   );
 
-  //console.log("Retrieving post IDs");
   const number: number[] = parent.map(parent => {
     const element = (parent as HTMLElement).querySelector(
       "div.meta > span.number"
@@ -30,7 +59,6 @@ function get_thread_posts(path: string): object {
     return +(element?.textContent as string);
   });
 
-  //console.log("Retrieving post authors");
   const name: string[] = parent.map(parent => {
     const element = (parent as HTMLElement).querySelector(
       "div.meta > span.name"
@@ -39,7 +67,6 @@ function get_thread_posts(path: string): object {
     return element?.textContent as string;
   });
 
-  //console.log("Formatting datetime");
   const date: string[] = parent.map(parent => {
     const element = (parent as HTMLElement).querySelector(
       "div.meta > span.date"
@@ -51,7 +78,6 @@ function get_thread_posts(path: string): object {
       .replace(/$/g, "0Z");
   });
 
-  //console.log("Retrieving UIDs");
   const uid: string[] = parent.map(parent => {
     const element = (parent as HTMLElement).querySelector(
       "div.meta > span.uid"
@@ -61,7 +87,6 @@ function get_thread_posts(path: string): object {
     return (element?.textContent as string).substring(3);
   });
 
-  //console.log("Retrieving Messages");
   const message: string[] = parent.map(parent => {
     const element = (parent as HTMLElement).querySelector(
       "div.message > span.escaped"
@@ -75,7 +100,6 @@ function get_thread_posts(path: string): object {
       .trim();
   });
 
-  //console.log("Zipping...");
   return number.map((e, i): object => ({
     number: e,
     name: name[i],
@@ -84,8 +108,6 @@ function get_thread_posts(path: string): object {
     message: message[i],
   }));
 }
-
-const directory = { json: "downloads/json/", html: "downloads/html/" } as const;
 
 console.log(pc.green(`[INFO] Starting the process`));
 
