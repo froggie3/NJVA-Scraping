@@ -103,11 +103,10 @@ class ThreadsDownloader:
         self.old_json_path = self.json_path \
             .replace(".json", ".old.json")
         self.has_verbose = args.verbose
-        pass
 
     def determine_save_directory_name(self) -> str:
         """
-        保存先となるディレクトリの指定
+        保存先となるディレクトリのパス名を整形
         """
         return args.outdir[0] \
             .strip("/") \
@@ -121,13 +120,14 @@ class ThreadsDownloader:
         print(color(
             f"[WARN] {dest} was not found. Making a copy of JSON file...",
             fore="yellow"))
+        
         try:
             shutil.copyfile(src, dest)
+            
         except shutil.SameFileError:
             print(
                 "Same filename was specified both in source and destination"
             )
-        pass
 
     def find_latest_archive_name(self) -> str:
         """
@@ -147,7 +147,6 @@ class ThreadsDownloader:
 
         if os.path.exists(last_thread_path):
             os.remove(last_thread_path)
-        pass
 
     def main(self):
         timer = Timer()
@@ -393,15 +392,12 @@ class ThreadsIndexer:
             print(color("[INFO] Index was exported to %s" %
                   fpath, fore="blue"))
 
-        return None
-
 
 class Timer:
     sleep_time: float = 0.0
 
     def __init__(self) -> None:
         self.sleep_time = args.sleep[0]
-        pass
 
     def sleep(self, rate: float = 0.1) -> None:
         counter = float(self.sleep_time)
@@ -412,20 +408,16 @@ class Timer:
             time.sleep(rate)
         print("")
 
-        return None
-
 
 if __name__ == "__main__":
     try:
         if not args.skip_index:
             ti: object = ThreadsIndexer(query="なんJNVA部")
             ti.save_index(ti.to_string(ti.make_index()))
-            pass
 
         if not args.skip_download:
             td: object = ThreadsDownloader()
             td.main()
-            pass
 
     except KeyboardInterrupt:
         pass
