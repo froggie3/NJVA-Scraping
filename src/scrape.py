@@ -31,7 +31,7 @@ URLs written in a specified JSON file.",
 parser.add_argument(
     "-s",
     "--sleep",
-    choices=range(3, 10),
+    choices=range(1, 10),
     default=[5],
     help="specify the interval at which you download each \
 HTML\n",
@@ -91,63 +91,132 @@ parser.add_argument(
 args = parser.parse_args()
 
 
+class HTTPRequest:
+    host = ""
+    useragent = ""
+
+    def __init__(self) -> None:
+        pass
+
+    def fetch(self, url: str) -> object:
+        self.host = self.extract_hostname_from(url)
+        self.useragent = UserAgent().random
+
+        headers = {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Language": "ja,en-US;q=0.7,en;q=0.3",
+            "Alt-Used": self.host,
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "DNT": "1",
+            "Host": self.host,
+            "Pragma": "no-cache",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Sec-Fetch-User": "?1",
+            "TE": "trailers",
+            "Upgrade-Insecure-Requests": "1",
+            "User-Agent": self.useragent
+        }
+
+        try:
+            request = requests.get(url=url, headers=headers)
+
+        except HTTPError as e:
+            print(e)
+            raise
+
+        else:
+            return request
+
+    def extract_hostname_from(self, url: str) -> str:
+        regEx = "(?:https?://)((?:[\w-]+(?:\.[\w-]+){1,}))"
+        m = re.search(regEx, url.strip())
+
+        return m.group(1)
+
+
 class ThreadsDownloader:
 
     json_path = ""
+    old_json_path = ""
+    out_dir = ""
     has_verbose = False
 
     def __init__(self) -> None:
         self.json_path = args.json[0]
+        self.old_json_path = self.json_path \
+            .replace(".json", ".old.json")
         self.has_verbose = args.verbose
-        pass
+
+    def determine_save_directory_name(self) -> str:
+        """
+        保存先となるディレクトリのパス名を整形
+        """
+        return args.outdir[0] \
+            .strip("/") \
+            .strip("\\") \
+            + "/"
+
+    def duplicate_latest_json(self, src: str, dest: str) -> None:
+        """
+        コピーする
+        """
+        print(color(
+            f"[WARN] {dest} was not found. Making a copy of JSON file...",
+            fore="yellow"))
+        
+        try:
+            shutil.copyfile(src, dest)
+            
+        except shutil.SameFileError:
+            print(
+                "Same filename was specified both in source and destination"
+            )
+
+    def find_latest_archive_name(self) -> str:
+        """
+        latest.old.json から取得以前で最新の HTML の名前を特定
+        """
+        old_thread_list = self.__jsonLoader(self.old_json_path)
+
+        return self.out_dir + old_thread_list[0]["thread_title"] + ".html"
+
+    def delete_latest_archive(self) -> None:
+        """
+        最新のスレッドは基本埋まっていないので、削除して再ダウンロードにまわす
+        """
+
+        # latest.old.json から取得以前で最新の HTML の名前を特定
+        last_thread_path = self.find_latest_archive_name()
+
+        if os.path.exists(last_thread_path):
+            os.remove(last_thread_path)
 
     def main(self):
         timer = Timer()
 
         print(color("[INFO] Looking for thread indexes...", fore="blue"))
-
-        # 保存先となるディレクトリの指定
-        out_dir = args.outdir[0].strip("/").strip("\\") + "/"
-        if not os.path.exists(path=out_dir):
-            print(color(
-                f"[FATAL] {args.outdir} is not a valid path for a JSON File.", fore="red"))
-            exit()
+        self.out_dir = self.determine_save_directory_name()
 
         # JSONの存在を確認し、配列を作成
         thread_list = self.__jsonLoader(self.json_path)
-        old_json_path = self.json_path.replace(".json", ".old.json")
 
-        # .old.json の存在も確認 (なかったらコピーを試行)
-        retry_interval = 2
-        tries = 2
-        for i in range(0, tries):
-            if not os.path.exists(path=old_json_path):
-                if i == 0:
-                    print(color(
-                        f"[WARN] {old_json_path} was not found. Making a copy of JSON file...", fore="yellow"))
-                    shutil.copyfile(self.json_path, old_json_path)
-                    time.sleep(retry_interval)
-                if i >= 1:
-                    print(
-                        color(f"[FATAL] Failed when making a copy of {old_json_path}.", fore="red"))
-                    exit()
+        # *.old.json が存在しなかったらコピーを試行する
+        if not os.path.exists(path=self.old_json_path):
+            self.duplicate_latest_json(self.json_path, self.old_json_path)
 
-        old_thread_list = self.__jsonLoader(old_json_path)
-
-        # latest.old.json から取得以前で最新の HTML の名前を特定
-        last_thread_path = out_dir + \
-            old_thread_list[0]["thread_title"] + ".html"
-
-        # 最新のスレッドは基本埋まっていないので、削除して再ダウンロードにまわす
-        if os.path.exists(last_thread_path):
-            os.remove(last_thread_path)
+        self.delete_latest_archive()
 
         print(color("[INFO] Start downloading archives...", fore="blue"))
 
         for thread in thread_list:
-            os.makedirs(name=out_dir, exist_ok=True)
+            os.makedirs(name=self.out_dir, exist_ok=True)
 
-            export_path = out_dir + thread["thread_title"] + ".html"
+            export_path = self.out_dir + \
+                thread["thread_title"] + ".html"
 
             # 既にHTMLがあるときはスキップ
             if os.path.exists(path=export_path):
@@ -157,32 +226,11 @@ class ThreadsDownloader:
 
             # リクエストを送信
             url: str = thread["thread_url"]
-            host: str = re.findall(
-                "[^http(|s):\/\/].+.5ch.net", url)[0]
 
             while True:
                 # Gone. が返ってきたら再試行する
-                r = requests.get(
-                    url=url,
-                    headers={
-                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-                        "Accept-Encoding": "gzip, deflate, br",
-                        "Accept-Language": "ja,en-US;q=0.7,en;q=0.3",
-                        "Alt-Used": host,
-                        "Cache-Control": "no-cache",
-                        "Connection": "keep-alive",
-                        "DNT": "1",
-                        "Host": host,
-                        "Pragma": "no-cache",
-                        "Sec-Fetch-Dest": "document",
-                        "Sec-Fetch-Mode": "navigate",
-                        "Sec-Fetch-Site": "none",
-                        "Sec-Fetch-User": "?1",
-                        "TE": "trailers",
-                        "Upgrade-Insecure-Requests": "1",
-                        "User-Agent": UserAgent().random
-                    }
-                )
+                req = HTTPRequest()
+                r = req.fetch(url=url)
 
                 if not re.findall("Gone.\n", r.text):
                     print("    Received invalid response. Retrying...")
@@ -191,8 +239,9 @@ class ThreadsDownloader:
 
             # Shift-JIS から UTF-8 に変換して保存する
             with codecs.open(filename=export_path, mode="w", encoding="utf-8") as fp:
-                fp.write(r.text.replace(
-                    "charset=Shift_JIS", 'charset="UTF-8"'))
+                fp.write(r.text
+                         .replace("charset=Shift_JIS", 'charset="UTF-8"')
+                         )
 
             print(color(f"    Exported to {export_path}", fore="blue"))
 
@@ -201,14 +250,16 @@ class ThreadsDownloader:
         print(color("[INFO] Downloading finished", fore="blue"))
 
     def __jsonLoader(self, path) -> dict:
-        if os.path.exists(path=path):
-            print(f"    Found {path}")
-
+        try:
             with open(file=path, mode="r", encoding="utf-8") as fp:
-                return json.loads(fp.read())
-        else:
+                content = json.loads(fp.read())
+
+        except FileNotFoundError:
             print(color(f"{path} was not found!", fore="red"))
-            exit()
+
+        else:
+            print(f"    Found {path}")
+            return content
 
 
 class ThreadsIndexer:
@@ -225,8 +276,10 @@ class ThreadsIndexer:
                 "thread_title": self.__compose_title(e),
                 "thread_url": self.__compose_url(e),
             }
+
         else:
             thread: object = {"thread_title": "", "thread_url": ""}
+
         return thread
 
     def __compose_title(self, e: object) -> str:
@@ -242,6 +295,7 @@ class ThreadsIndexer:
     def __get_query_uri(self, search: str, page: int = 0) -> str:
         # return f"http://127.0.0.1/ajax_search.v15.cgi.{page}.json"
         API = "https://kakolog.jp/ajax/ajax_search.v15.cgi"
+
         return "%s%s%s%s" % (
             API,
             f"?q={requests.utils.quote(search)}",
@@ -250,7 +304,6 @@ class ThreadsIndexer:
         )
 
     def make_index(self) -> object:
-        HOST: str = "kakolog.jp"
         timer = Timer()
         pageindex = 0
         threads = []
@@ -261,52 +314,28 @@ class ThreadsIndexer:
             uri: str = self.__get_query_uri(
                 search=self.searchquery, page=pageindex)
 
-            try:
-                response: object = requests.get(
-                    url=uri,
-                    headers={
-                        "Accept-Encoding": "gzip, deflate, br",
-                        "Accept-Language": "ja,en-US;q=0.7,en;q=0.3",
-                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-                        "Alt-Used": HOST,
-                        "Cache-Control": "no-cache",
-                        "Connection": "keep-alive",
-                        "DNT": "1",
-                        "Host": HOST,
-                        "Pragma": "no-cache",
-                        "Sec-Fetch-Dest": "document",
-                        "Sec-Fetch-Mode": "navigate",
-                        "Sec-Fetch-Site": "none",
-                        "Sec-Fetch-User": "?1",
-                        "TE": "trailers",
-                        "Upgrade-Insecure-Requests": "1",
-                        "User-Agent": UserAgent().random,
-                    }
-                )
-                # raise error if an error has occurred
-                # response.raise_for_status()
+            req = HTTPRequest()
+            response: object = req.fetch(url=uri)
 
-                if response.status_code == 200:
-                    retrieved: dict = json.loads(response.text)
-                    if not retrieved["list"]:
-                        break
-                    else:
-                        print(f"    {uri} ... {response.status_code} OK")
-                        for i in retrieved["list"]:
-                            threads.append(self.__compose(e=i))
-                        pageindex += 1
+            if response.status_code == 200:
+                retrieved: dict = json.loads(response.text)
+
+                if not retrieved["list"]:
+                    break
 
                 else:
-                    print(color("    Failed to retrieve thread names and links. Retrying...",
-                                fore="yellow"))
-                    pageindex += 0
-                    pass
+                    print(f"    {uri} ... {response.status_code} OK")
+                    for i in retrieved["list"]:
+                        threads.append(self.__compose(e=i))
+                    pageindex += 1
 
-                timer.sleep()
+            else:
+                print(
+                    color("    Failed to retrieve thread names and links. Retrying...",
+                          fore="yellow"))
+                pageindex += 0
 
-            except HTTPError as e:
-                print(e)
-                raise
+            timer.sleep()
 
         print(color("    Succeeded to retrieve thread names and links",
                     fore="green"))
@@ -326,12 +355,15 @@ class ThreadsIndexer:
         if os.path.exists(path=fpath):
             # latest.json のコピーを作成してからダウンロード
             print(f'[INFO] Creating a copy to {fpath_old}...')
+
             shutil.copyfile(fpath, fpath_old)
+
             if not os.path.exists(path=fpath_old):
                 print(color("[FATAL] Failed when making a copy of %s." % fpath,
                             fore="red",
                             ))
                 exit()
+
             else:
                 print(color(f"    Succeeded to create a copy to {fpath_old}",
                             fore="green"))
@@ -343,24 +375,21 @@ class ThreadsIndexer:
             print(color("[INFO] Index was exported to %s" %
                   fpath, fore="blue"))
 
-        return None
-
 
 class Timer:
     sleep_time: float = 0.0
 
     def __init__(self) -> None:
         self.sleep_time = args.sleep[0]
-        pass
 
     def sleep(self, rate: float = 0.1) -> None:
         counter = float(self.sleep_time)
+
         while counter >= 0.0:
             print(f"    Waiting... ({counter:.1f} seconds left)", end="\r")
             counter -= rate
             time.sleep(rate)
         print("")
-        return None
 
 
 if __name__ == "__main__":
@@ -368,12 +397,10 @@ if __name__ == "__main__":
         if not args.skip_index:
             ti: object = ThreadsIndexer(query="なんJNVA部")
             ti.save_index(ti.to_string(ti.make_index()))
-            pass
 
         if not args.skip_download:
             td: object = ThreadsDownloader()
             td.main()
-            pass
 
     except KeyboardInterrupt:
         pass
