@@ -32,7 +32,7 @@ parser.add_argument(
     "-s",
     "--sleep",
     choices=range(1, 10),
-    default=[1],
+    default=[5],
     help="specify the interval at which you download each \
 HTML\n",
     metavar="[integer]",
@@ -89,6 +89,53 @@ parser.add_argument(
 )
 
 args = parser.parse_args()
+
+
+class HTTPRequest:
+    host = ""
+    useragent = ""
+
+    def __init__(self) -> None:
+        pass
+
+    def fetch(self, url: str) -> object:
+        self.host = self.extract_hostname_from(url)
+        self.useragent = UserAgent().random
+
+        headers = {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Language": "ja,en-US;q=0.7,en;q=0.3",
+            "Alt-Used": self.host,
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "DNT": "1",
+            "Host": self.host,
+            "Pragma": "no-cache",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Sec-Fetch-User": "?1",
+            "TE": "trailers",
+            "Upgrade-Insecure-Requests": "1",
+            "User-Agent": self.useragent
+        }
+
+        try:
+            request = requests.get(url=url, headers=headers)
+
+        except HTTPError as e:
+            print(e)
+            raise
+
+        else:
+            return request
+
+    def extract_hostname_from(self, url: str) -> str:
+        regEx = "(?:https?://)((?:[\w-]+(?:\.[\w-]+){1,}))"
+        m = re.search(regEx, url.strip())
+
+        return m.group(1)
 
 
 class ThreadsDownloader:
@@ -183,7 +230,8 @@ class ThreadsDownloader:
 
             while True:
                 # Gone. が返ってきたら再試行する
-                r = self.fetch(url)
+                req = HTTPRequest()
+                r = req.fetch(url=url)
 
                 if not re.findall("Gone.\n", r.text):
                     print("    Received invalid response. Retrying...")
@@ -201,38 +249,6 @@ class ThreadsDownloader:
             timer.sleep()
 
         print(color("[INFO] Downloading finished", fore="blue"))
-
-    def fetch(self, url) -> object:
-        HOST: str = re.findall("[^http(|s)://].+.5ch.net", url)[0]
-
-        headers = {
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Accept-Language": "ja,en-US;q=0.7,en;q=0.3",
-            "Alt-Used": HOST,
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "DNT": "1",
-            "Host": HOST,
-            "Pragma": "no-cache",
-            "Sec-Fetch-Dest": "document",
-            "Sec-Fetch-Mode": "navigate",
-            "Sec-Fetch-Site": "none",
-            "Sec-Fetch-User": "?1",
-            "TE": "trailers",
-            "Upgrade-Insecure-Requests": "1",
-            "User-Agent": UserAgent().random
-        }
-
-        try:
-            request = requests.get(url=url, headers=headers)
-
-        except HTTPError as e:
-            print(e)
-            raise
-
-        else:
-            return request
 
     def __jsonLoader(self, path) -> dict:
         try:
@@ -299,7 +315,8 @@ class ThreadsIndexer:
             uri: str = self.__get_query_uri(
                 search=self.searchquery, page=pageindex)
 
-            response: object = self.fetch_from()
+            req = HTTPRequest()
+            response: object = req.fetch(url=uri)
 
             if response.status_code == 200:
                 retrieved: dict = json.loads(response.text)
@@ -325,40 +342,6 @@ class ThreadsIndexer:
                     fore="green"))
 
         return threads
-
-    def fetch_from(self, uri: str) -> object:
-        HOST: str = "kakolog.jp"
-
-        headers = {
-            "Accept-Encoding": "gzip, deflate, br",
-            "Accept-Language": "ja,en-US;q=0.7,en;q=0.3",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-            "Alt-Used": HOST,
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "DNT": "1",
-            "Host": HOST,
-            "Pragma": "no-cache",
-            "Sec-Fetch-Dest": "document",
-            "Sec-Fetch-Mode": "navigate",
-            "Sec-Fetch-Site": "none",
-            "Sec-Fetch-User": "?1",
-            "TE": "trailers",
-            "Upgrade-Insecure-Requests": "1",
-            "User-Agent": UserAgent().random,
-        }
-
-        try:
-            request = requests.get(url=uri, headers=headers)
-            # raise error if an error has occurred
-            # response.raise_for_status()
-
-        except HTTPError as e:
-            print(e)
-            raise
-
-        else:
-            return request
 
     def to_string(self, data: object) -> str:
         return json.dumps(data, indent=4, ensure_ascii=False)
