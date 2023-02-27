@@ -6,8 +6,8 @@ downloads/*
 dest/
 
 # Specific JSON paths
-target/latest.old.json
-target/nanj_1-65.old.json
+downloads/latest.old.json
+downloads/nanj_1-65.old.json
 
 # Experimentals
 tools/

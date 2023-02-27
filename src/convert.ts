@@ -4,8 +4,67 @@ import { JSDOM } from "jsdom";
 import { argv } from "node:process";
 const arg_has_force =
   (argv.includes("--force") || argv.includes("-f")) ?? false;
+
 const dom = new JSDOM();
-const filelist: string[] = readdirSync("./downloads/html");
+const directory = { json: "downloads/json/", html: "downloads/html/" } as const;
+const filelist: string[] = readdirSync(directory.html);
+
+console.log(pc.green(`[INFO] Starting the process`));
+
+function json_determine_filename(name: string): string {
+  const filename = name.replace(/html/g, "");
+  const slice = {
+    start: filename.search(/★\d+/) + 1,
+    end: filename.search(/\(\d+\)/),
+  };
+  const thread_number = (
+    slice.start || slice.end !== -1
+      ? filename.slice(slice.start, slice.end)
+      : "1"
+  ).padStart(5, "0");
+  const filename_new = `${thread_number}.json`;
+
+  return filename_new;
+}
+
+function convert(html_path: string, json_path: string): void {
+  const thread_data = get_thread_posts(html_path);
+  const json_text = JSON.stringify(thread_data, null, "  ");
+
+  console.log(`[INFO] Trying to write contents to ${json_path}...`);
+  writeFileSync(json_path, json_text, { encoding: "utf8", flag: "w" });
+
+  console.log(pc.blue(`[info] json written to ${json_path}`));
+}
+
+function show_info(index: number) {
+  if (index === 0) {
+    const message = `No file has been changed`;
+    console.log(message);
+    return;
+  }
+
+  const message = `${index} files are added`;
+  console.log(pc.green(`[INFO] Done. ${message}`));
+}
+
+let i = 0;
+
+for (const filename of filelist) {
+  const json_path = directory.json + json_determine_filename(filename);
+  const html_path = directory.html + filename;
+
+  if (existsSync(json_path) && !arg_has_force) {
+    // console.log(`[info] ${json_path} already exists. skipping...`);
+    continue;
+  }
+
+  convert(html_path, json_path);
+  ++i;
+}
+
+show_info(i);
+dom.window.close();
 
 /**
  * A function to output an array, taking one argument of path to a JSON file.
@@ -16,12 +75,10 @@ const filelist: string[] = readdirSync("./downloads/html");
 function get_thread_posts(path: string): object {
   dom.window.document.body.innerHTML = readFileSync(path, "utf8");
 
-  //console.log("Persing DOM...");
   const parent: Node[] = Array.from(
     dom.window.document.querySelectorAll("div.post") as NodeList
   );
 
-  //console.log("Retrieving post IDs");
   const number: number[] = parent.map(parent => {
     const element = (parent as HTMLElement).querySelector(
       "div.meta > span.number"
@@ -30,7 +87,6 @@ function get_thread_posts(path: string): object {
     return +(element?.textContent as string);
   });
 
-  //console.log("Retrieving post authors");
   const name: string[] = parent.map(parent => {
     const element = (parent as HTMLElement).querySelector(
       "div.meta > span.name"
@@ -39,7 +95,6 @@ function get_thread_posts(path: string): object {
     return element?.textContent as string;
   });
 
-  //console.log("Formatting datetime");
   const date: string[] = parent.map(parent => {
     const element = (parent as HTMLElement).querySelector(
       "div.meta > span.date"
@@ -51,7 +106,6 @@ function get_thread_posts(path: string): object {
       .replace(/$/g, "0Z");
   });
 
-  //console.log("Retrieving UIDs");
   const uid: string[] = parent.map(parent => {
     const element = (parent as HTMLElement).querySelector(
       "div.meta > span.uid"
@@ -60,7 +114,6 @@ function get_thread_posts(path: string): object {
     return (element?.textContent as string).replace(/ID:/g, "");
   });
 
-  //console.log("Retrieving Messages");
   const message: string[] = parent.map(parent => {
     const element = (parent as HTMLElement).querySelector(
       "div.message > span.escaped"
@@ -74,7 +127,6 @@ function get_thread_posts(path: string): object {
       .trim();
   });
 
-  //console.log("Zipping...");
   return number.map((e, i): object => ({
     number: e,
     name: name[i],
@@ -83,31 +135,3 @@ function get_thread_posts(path: string): object {
     message: message[i],
   }));
 }
-
-const directory = { json: "downloads/json/", html: "downloads/html/" } as const;
-
-console.log(pc.green(`[INFO] Starting the process`));
-
-for (const file of filelist) {
-  const fpath = directory.json + file.replace(/html/g, "json");
-
-  if (existsSync(fpath) && !arg_has_force) {
-    console.log(`[INFO] ${fpath} already exists. Skipping...`);
-    continue;
-  }
-
-  const json_text: string = ((): string =>
-    JSON.stringify(get_thread_posts(directory.html + file), null, "  "))();
-
-  console.log(`[INFO] Trying to write contents to ${fpath}...`);
-  writeFileSync(fpath, json_text, { encoding: "utf8", flag: "w" });
-
-  if (!existsSync(fpath)) {
-    continue;
-  }
-
-  console.log(pc.blue(`[INFO] JSON written to ${fpath}`));
-}
-
-dom.window.close();
-console.log(pc.green(`[INFO] Done.`));

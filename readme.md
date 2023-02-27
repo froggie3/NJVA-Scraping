@@ -37,12 +37,12 @@ A few scripts which helps you to retrieve all the JSON-formatted threads on な�
 
 ## How to use this?
 
-1. This command retrieves the thread titles and their links and save them with JSON format and let you download bunch of HTML webpages while parsing the JSON file. For additional help, you can specify `-h` option for this script. JSON will be saved into `target/` directory while the webpages will be saved into `downloads/html` directory.
+1. This command retrieves the thread titles and their links and save them with JSON format and let you download bunch of HTML webpages while parsing the JSON file. For additional help, you can specify `-h` option for this script. JSON will be saved into `downloads/` directory while the webpages will be saved into `downloads/html` directory.
 
-    (Note that older threads archive than ★65 (whose titles are different from the latest one) are already downloaded as `target/nanj_1-65.json`, so you do not have to re-download)
+    (Note that older threads archive than ★65 (whose titles are different from the latest one) are already downloaded as `downloads/nanj_1-65.json`, so you do not have to re-download)
 
     ```bash
-    python src/scrape.py --json target/latest.json
+    python src/scrape.py --json downloads/latest.json
     ```
 
 2. Convert all the threads into JSON format. It should take for a while for all webpages to be converted. If you would like to override the files which you have already downloaded, you can specify `-f` or `--force` (alias) option for this script. Converted JSONs will be saved into `downloads/json` directory.
