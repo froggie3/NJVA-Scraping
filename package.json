@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "archive:scrape": "python ./src/scrape.py --json ./target/latest.json",
+    "archive:scrape": "python ./src/scrape.py --json ./downloads/latest.json",
     "archive:convert": "npx ts-node ./src/convert.ts",
     "archive": "pwsh -c node_modules/.bin/run-s.ps1 archive:scrape archive:convert"
   },

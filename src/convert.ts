@@ -11,32 +11,60 @@ const filelist: string[] = readdirSync(directory.html);
 
 console.log(pc.green(`[INFO] Starting the process`));
 
-for (const file of filelist) {
-  const file_path = directory.json + file.replace(/html/g, "json");
+function json_determine_filename(name: string): string {
+  const filename = name.replace(/html/g, "");
+  const slice = {
+    start: filename.search(/★\d+/) + 1,
+    end: filename.search(/\(\d+\)/),
+  };
+  const thread_number = (
+    slice.start || slice.end !== -1
+      ? filename.slice(slice.start, slice.end)
+      : "1"
+  ).padStart(5, "0");
+  const filename_new = `${thread_number}.json`;
 
-  if (existsSync(file_path) && !arg_has_force) {
-    console.log(`[INFO] ${file_path} already exists. Skipping...`);
-    continue;
-  }
-
-  (() => {
-    const json_text: string = ((): string =>
-      JSON.stringify(get_thread_posts(directory.html + file), null, "  "))();
-
-    console.log(`[INFO] Trying to write contents to ${file_path}...`);
-    writeFileSync(file_path, json_text, { encoding: "utf8", flag: "w" });
-  })();
-
-  if (!existsSync(file_path)) {
-    continue;
-  }
-
-  console.log(pc.blue(`[INFO] JSON written to ${file_path}`));
+  return filename_new;
 }
 
-dom.window.close();
+function convert(html_path: string, json_path: string): void {
+  const thread_data = get_thread_posts(html_path);
+  const json_text = JSON.stringify(thread_data, null, "  ");
 
-console.log(pc.green(`[INFO] Done.`));
+  console.log(`[INFO] Trying to write contents to ${json_path}...`);
+  writeFileSync(json_path, json_text, { encoding: "utf8", flag: "w" });
+
+  console.log(pc.blue(`[info] json written to ${json_path}`));
+}
+
+function show_info(index: number) {
+  if (index === 0) {
+    const message = `No file has been changed`;
+    console.log(message);
+    return;
+  }
+
+  const message = `${index} files are added`;
+  console.log(pc.green(`[INFO] Done. ${message}`));
+}
+
+let i = 0;
+
+for (const filename of filelist) {
+  const json_path = directory.json + json_determine_filename(filename);
+  const html_path = directory.html + filename;
+
+  if (existsSync(json_path) && !arg_has_force) {
+    // console.log(`[info] ${json_path} already exists. skipping...`);
+    continue;
+  }
+
+  convert(html_path, json_path);
+  ++i;
+}
+
+show_info(i);
+dom.window.close();
 
 /**
  * A function to output an array, taking one argument of path to a JSON file.
@@ -107,29 +135,3 @@ function get_thread_posts(path: string): object {
     message: message[i],
   }));
 }
-
-console.log(pc.green(`[INFO] Starting the process`));
-
-for (const file of filelist) {
-  const fpath = directory.json + file.replace(/html/g, "json");
-
-  if (existsSync(fpath) && !arg_has_force) {
-    console.log(`[INFO] ${fpath} already exists. Skipping...`);
-    continue;
-  }
-
-  const json_text: string = ((): string =>
-    JSON.stringify(get_thread_posts(directory.html + file), null, "  "))();
-
-  console.log(`[INFO] Trying to write contents to ${fpath}...`);
-  writeFileSync(fpath, json_text, { encoding: "utf8", flag: "w" });
-
-  if (!existsSync(fpath)) {
-    continue;
-  }
-
-  console.log(pc.blue(`[INFO] JSON written to ${fpath}`));
-}
-
-dom.window.close();
-console.log(pc.green(`[INFO] Done.`));

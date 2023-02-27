@@ -44,7 +44,7 @@ HTML\n",
 parser.add_argument(
     '-j',
     '--json',
-    default=['./target/latest.json'],
+    default=['./downloads/latest.json'],
     help='choose a path for a JSON file containing thread URLs and titles\n',
     metavar='[path]',
     nargs=1,
